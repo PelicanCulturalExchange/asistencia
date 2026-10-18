@@ -140,9 +140,8 @@
 
     const td = {}; mine.forEach(m => { if (m.date === today) td[m.type] = m; });
     let status;
-    if (emp.boss) status = 'boss';
-    else if (ctx.leaves && ctx.leaves[today + '|' + emp.id]) status = 'permit';
-    else if (!isWorkday(emp, today, ctx) && !extraDay(today, ctx)) status = 'off';
+    if (!emp.boss && ctx.leaves && ctx.leaves[today + '|' + emp.id]) status = 'permit';
+    else if (!emp.boss && !isWorkday(emp, today, ctx) && !extraDay(today, ctx)) status = 'off';
     else if (td.out) status = 'done';
     else if (td.lunch_out && !td.lunch_in) status = 'lunch';
     else if (td.in) status = 'working';

@@ -14,7 +14,11 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 /* ---------------- Tiempo ---------------- */
 const T = (() => {
   let base = null, real0 = 0, off = 0, okAt = 0;
-  if (DEMO && qs.get('t')) { base = R.tsOf(qs.get('d') || R.ymd(Date.now()), qs.get('t')); real0 = Date.now(); }
+  if (DEMO) {
+    let d = qs.get('d') || R.ymd(Date.now());
+    if (!qs.get('d') && (R.dow(d) === 0 || R.dow(d) === 6)) d = R.addDays(d, R.dow(d) === 0 ? 1 : 2);   // demo en fin de semana → lunes
+    if (qs.get('t') || d !== R.ymd(Date.now())) { base = R.tsOf(d, qs.get('t') || '08:50'); real0 = Date.now(); }
+  }
   return {
     now: () => base !== null ? base + (Date.now() - real0) : Date.now() + off,
     verified: () => navigator.onLine && (DEMO || Date.now() - okAt < 600000),
@@ -34,7 +38,7 @@ let TEAM = [
   { id: 'e5', name: 'Jeff', type: 'Planta', sched: std(FULL), lunch: true, rot: true },
   { id: 'e6', name: 'Naomi', type: 'Medio tiempo', sched: std(['09:00', '13:00']), lunch: false, rot: false },
   { id: 'e7', name: 'Mafer', type: 'Medio tiempo', sched: { 1: ['14:00', '17:45'], 2: ['14:00', '17:45'], 4: ['14:00', '17:45'] }, lunch: false, rot: false },
-  { id: 'boss', name: 'Elián', type: 'Dirección', boss: true }
+  { id: 'boss', name: 'Elián', type: 'Dirección', boss: true, sched: std(FULL), lunch: true, rot: false }
 ];
 let CTX = { holidays: {}, leaves: {}, extra: {} };
 if (DEMO && qs.get('extra')) CTX.extra[qs.get('extra')] = { from: '09:00', to: '13:00' };
@@ -159,13 +163,12 @@ function home() {
   const tiles = team.map(({ e, st }) => {
     const inM = st.today.in, late = inM && inM.late;
     let label = '', cls = 's-' + st.status;
-    if (st.status === 'pending') label = 'Entra ' + (R.schedFor(e, d) ? R.schedFor(e, d)[0] : '');
+    if (st.status === 'pending') label = e.boss ? 'Dirección' : 'Entra ' + (R.schedFor(e, d) ? R.schedFor(e, d)[0] : '');
     else if (st.status === 'working') { label = late ? `Tarde · ${R.hm(inM.ts)}` : `✓ ${R.hm(inM.ts)}`; if (late) cls = 's-late'; }
     else if (st.status === 'lunch') label = 'En almuerzo';
     else if (st.status === 'done') label = 'Salió ' + R.hm(st.today.out.ts);
     else if (st.status === 'off') label = 'Libre hoy';
     else if (st.status === 'permit') label = 'Permiso';
-    else if (st.status === 'boss') label = 'Dirección';
     return `<button class="tile ${cls}" data-id="${e.id}">${st.streak > 0 ? `<span class="fl"><svg><use href="#i-flame"/></svg>${st.streak}</span>` : ''}
       <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${esc(initials(e.name))}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
   }).join('');
@@ -233,9 +236,8 @@ function renderNet() {
 /* ---------------- Tocar una persona ---------------- */
 function tapPerson(e) {
   const st = stats(e);
-  if (e.boss) return bossScreen();
   if (st.status === 'done') return modal({ title: 'Jornada cerrada', text: `${e.name}, ya registraste tu salida de hoy. ¡Hasta mañana!`, pose: 'wave', buttons: [{ label: 'Listo' }] });
-  if (st.status === 'off') return modal({ title: 'Libre hoy', text: `${e.name}, hoy no tienes jornada programada.`, pose: 'side', buttons: [{ label: 'Listo' }] });
+  if (st.status === 'off' && !e.boss) return modal({ title: 'Libre hoy', text: `${e.name}, hoy no tienes jornada programada.`, pose: 'side', buttons: [{ label: 'Listo' }] });
   if (st.status === 'permit') return modal({ title: 'Permiso aprobado', text: `${e.name}, hoy tienes un permiso aprobado. No hace falta registrar.`, pose: 'thumbs', buttons: [{ label: 'Listo' }] });
   S.flow = { emp: e };
   askPin({ id: e.id, name: e.name, title: 'Ingresa tu PIN', onOk: () => chooseAction(e, st) });
@@ -292,7 +294,7 @@ function begin(action) {
   const f = S.flow, e = f.emp; f.action = action;
   if (action !== 'out') return camera();
   const end = (R.extraDay(today(), CTX) && !R.schedFor(e, today())) ? R.extraDay(today(), CTX).to : (R.schedFor(e, today()) || [0, CFG.END])[1];
-  if (R.minOfDay(T.now()) < R.toMin(end)) {
+  if (!e.boss && R.minOfDay(T.now()) < R.toMin(end)) {
     return modal({ title: 'Todavía no es hora', text: `La salida es a las ${end}. No se puede salir antes sin autorización.`, pose: 'point',
       buttons: [{ label: 'Volver', cls: 'ghost', fn: home }, { label: 'Tengo autorización', cls: 'blue', fn: () => askPin({ id: 'boss', name: 'Elián', title: 'PIN de autorización', onOk: () => { f.early = true; checklist(); } }) }] });
   }
@@ -324,6 +326,7 @@ async function camera() {
     <div class="center" style="width:min(580px,100%)"><h2 class="stk-wrap" style="font-size:38px" id="ct">${stkWords('Mírame y', '')} ${stkWords('sonríe', 'g')}</h2>
     <div class="cam" id="cam"><video id="vid" autoplay playsinline muted></video><img class="shot" id="shot" alt=""><div class="cd" id="cd"></div></div>
     <div class="pre" id="pre"><img id="preimg" alt=""></div><div class="msg" id="cm"></div>
+    <div class="daily"><p><b>💡 Dato curioso:</b> ${esc(window.Daily.fact(today()))}</p><p><b>🎵 Hoy suena:</b> ${esc(window.Daily.music(today()))}</p></div>
     <div class="row" id="cb"><button class="btn" id="snap">Tomar foto</button></div><button class="link" id="cc">Cancelar</button></div>`;
   $('#snap').onclick = snap; $('#cc').onclick = () => { stopCam(); home(); }; go('s-cam');
   try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false }); $('#vid').srcObject = stream; }
@@ -357,7 +360,7 @@ async function send() {
   const ts = T.now(), date = R.ymd(ts), before = stats(e).medals;
   const m = { id: `${e.id}|${date}|${f.action}`, emp: e.id, date, type: f.action, ts, verified: T.verified(), photo: f.photo, synced: false, office: OFFICE };
   const extra = R.extraDay(date, CTX) && !R.isWorkday(e, date, CTX);
-  if (f.action === 'in') { if (extra) m.extra = true; else Object.assign(m, R.scoreIn(e, S.marks, CTX, ts)); }
+  if (f.action === 'in') { if (extra) m.extra = true; else if (e.boss) Object.assign(m, { late: false, lateMin: 0, fine: 0, pts: 0, bonus: 0, streak: 0, early: false }); else Object.assign(m, R.scoreIn(e, S.marks, CTX, ts)); }
   if (f.action === 'out') { m.clean = true; if (f.early) { m.early = true; m.authBy = 'Elián'; } if (f.isCloser) m.closer = true; if (extra) m.extra = true; }
   if (S.marks.some(x => x.id === m.id)) return home();
   await dbPut(m); S.marks.push(m); stopCam(); syncOutbox();
@@ -367,7 +370,7 @@ async function send() {
 /* ---------------- Resultados ---------------- */
 function statCards(items) { return `<div class="stats">${items.map(([v, l, ic]) => `<div class="stat"><b>${ic ? `<svg><use href="#${ic}"/></svg>` : ''}${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>`; }
 function result(m, before) {
-  const e = S.flow.emp, st = stats(e), first = e.name, hm = R.hm(m.ts); let hero = '', pose = 'thumbs', extraHTML = '', eb = '', msg = '', late = false;
+  const e = S.flow.emp, st = stats(e), first = e.boss ? window.Daily.nick(m.date) : e.name, hm = R.hm(m.ts); let hero = '', pose = 'thumbs', extraHTML = '', eb = '', msg = '', late = false;
   if (m.type === 'in') {
     late = !!m.late;
     if (m.extra) { eb = 'Jornada especial'; hero = stkWords('¡Gracias por venir,', '') + ' ' + stkWords(first + '!', 'g'); msg = 'Tu entrada de hoy cuenta como horas extra.'; pose = 'cheer'; }
@@ -377,7 +380,7 @@ function result(m, before) {
       msg = st.streak >= 2 ? `Llevas ${st.streak} días seguidos llegando a tiempo. Buen trabajo.` : 'Entrada registrada. ¡Vamos por la racha!'; }
     const newM = st.medals.filter(k => !before.includes(k)); if (newM.length) pose = 'cheer';
     const rk = st.rank, fl = [];
-    extraHTML = quoteHTML() + (m.extra ? '' : `${statCards([[String(st.streak), 'Racha (días)', 'i-flame'], ['+' + m.pts, 'Puntos de hoy'], [String(st.monthPts), 'Puntos del mes']])}
+    extraHTML = quoteHTML() + (m.extra || e.boss ? '' : `${statCards([[String(st.streak), 'Racha (días)', 'i-flame'], ['+' + m.pts, 'Puntos de hoy'], [String(st.monthPts), 'Puntos del mes']])}
       <div class="panel"><div class="rk"><span>${esc(rk.name)}${rk.prize ? ` · ${esc(rk.prize)}` : ''}</span><span>${rk.next ? `${rk.next.need} pts para ${esc(rk.next.name)}` : '¡Rango máximo!'}</span></div><div class="bar2"><i id="bar"></i></div></div>
       <div class="duo"><div class="panel"><h3>Tu semana</h3><div class="week">${st.week.map(d => `<div class="day ${d.s}">${d.d}<svg>${d.s === 'ok' ? '<use href="#i-check"/>' : d.s === 'late' ? '<use href="#i-clock"/>' : d.s === 'today' ? '<use href="#i-sun"/>' : ''}</svg></div>`).join('')}</div></div>
       <div class="panel"><h3>Medallas</h3><div class="medals">${Object.keys(MEDALS).map(k => `<div class="medal ${st.medals.includes(k) ? 'got' : ''} ${newM.includes(k) ? 'new' : ''}"><svg><use href="#${MEDALS[k][1]}"/></svg>${MEDALS[k][0]}</div>`).join('')}</div></div></div>`);
