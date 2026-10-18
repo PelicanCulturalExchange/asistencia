@@ -1,12 +1,12 @@
 /* Pelican · Asistencia — app de la tablet (PWA, funciona sin internet).
  * Modo demo: ENDPOINT vacío → datos de prueba guardados en la propia tablet.
- * Pruebas: ?d=2026-10-19&t=08:52 (fecha/hora simuladas), &demo=day (jornada en curso), &bday=1 */
+ * Demo aislada: ?demo=1 (PIN 1234, jefe 0000) · &reset=1 reinicia · solo en demo: ?d=2026-10-19&t=08:52 (fecha/hora simuladas), &demo=day (jornada en curso), &bday=1 */
 (() => {
 'use strict';
 const R = window.Rules, CFG = R.CFG, TZ_NAME = 'America/Guayaquil';
 const qs = new URLSearchParams(location.search);
 const ENDPOINT = (window.PEL_CONFIG && window.PEL_CONFIG.ENDPOINT) || '';   // URL de Apps Script (config.js)
-const DEMO = !ENDPOINT;
+const DEMO = !ENDPOINT || qs.has('demo');   // ?demo=1 → versión de prueba aislada (no toca datos reales)
 let OFFICE = 'Oficina Quito';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -14,7 +14,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 /* ---------------- Tiempo ---------------- */
 const T = (() => {
   let base = null, real0 = 0, off = 0, okAt = 0;
-  if (qs.get('t')) { base = R.tsOf(qs.get('d') || R.ymd(Date.now()), qs.get('t')); real0 = Date.now(); }
+  if (DEMO && qs.get('t')) { base = R.tsOf(qs.get('d') || R.ymd(Date.now()), qs.get('t')); real0 = Date.now(); }
   return {
     now: () => base !== null ? base + (Date.now() - real0) : Date.now() + off,
     verified: () => navigator.onLine && (DEMO || Date.now() - okAt < 600000),
@@ -37,8 +37,8 @@ let TEAM = [
   { id: 'boss', name: 'Elián', type: 'Dirección', boss: true }
 ];
 let CTX = { holidays: {}, leaves: {}, extra: {} };
-if (qs.get('extra')) CTX.extra[qs.get('extra')] = { from: '09:00', to: '13:00' };
-if (qs.get('bday')) TEAM[4].bday = (qs.get('d') || R.ymd(Date.now())).slice(5);
+if (DEMO && qs.get('extra')) CTX.extra[qs.get('extra')] = { from: '09:00', to: '13:00' };
+if (DEMO && qs.get('bday')) TEAM[4].bday = (qs.get('d') || R.ymd(Date.now())).slice(5);
 
 const QUOTES = window.Quotes.QUOTES;
 const MEDALS = {
@@ -50,7 +50,7 @@ const TYPE_LABEL = { in: 'ENTRADA', lunch_out: 'SALIDA A ALMUERZO', lunch_in: 'R
 /* ---------------- Base local (IndexedDB): las marcas se guardan primero en la tablet ---------------- */
 let db;
 const openDB = () => new Promise((res, rej) => {
-  const r = indexedDB.open('pelican-asistencia', 1);
+  const r = indexedDB.open(DEMO ? 'pelican-demo' : 'pelican-asistencia', 1);
   r.onupgradeneeded = () => r.result.createObjectStore('marks', { keyPath: 'id' });
   r.onsuccess = () => { db = r.result; res(); }; r.onerror = () => rej(r.error);
 });
@@ -100,13 +100,14 @@ async function initPins() {
   if (!DEMO) { TEAM.forEach(e => PINS[e.id] = e.pin); return; }
   for (const e of TEAM) PINS[e.id] = await sha(`pel:${e.id}:1234`); PINS.boss = await sha('pel:boss:0000');
 }
-const lockOf = id => JSON.parse(localStorage.getItem('pel_lock_' + id) || '{"f":0,"u":0}');
+const LK = DEMO ? 'pel_demo_lock_' : 'pel_lock_';
+const lockOf = id => JSON.parse(localStorage.getItem(LK + id) || '{"f":0,"u":0}');
 async function checkPin(id, pin) {
   const l = lockOf(id);
   if (l.u > Date.now()) return 'locked';
-  if (await sha(`pel:${id}:${pin}`) === PINS[id]) { localStorage.removeItem('pel_lock_' + id); return 'ok'; }
+  if (await sha(`pel:${id}:${pin}`) === PINS[id]) { localStorage.removeItem(LK + id); return 'ok'; }
   l.f++; if (l.f >= 5) { l.f = 0; l.u = Date.now() + 300000; }
-  localStorage.setItem('pel_lock_' + id, JSON.stringify(l)); return l.u > Date.now() ? 'locked' : 'bad';
+  localStorage.setItem(LK + id, JSON.stringify(l)); return l.u > Date.now() ? 'locked' : 'bad';
 }
 
 /* ---------------- Helpers de UI ---------------- */
@@ -453,6 +454,7 @@ async function loadBoot() {
 
 /* ---------------- Arranque ---------------- */
 (async () => {
+  if (DEMO && qs.get('reset')) await new Promise(r => { const q = indexedDB.deleteDatabase('pelican-demo'); q.onsuccess = q.onerror = q.onblocked = () => r(); });
   await openDB(); await enrollIfNeeded();
   let marks = await dbAll();
   if (DEMO) {
