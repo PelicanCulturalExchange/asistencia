@@ -469,7 +469,7 @@ async function loadBoot() {
   } else { S.marks = marks; await loadBoot(); }
   home();
   setInterval(tick, 1000); setInterval(() => { if (S.screen === 's-home') home(); }, 60000); setInterval(syncOutbox, 30000);
-  setInterval(async () => { if (!DEMO && S.screen === 's-home') { await loadBoot(); } }, 300000);
+  setInterval(async () => { if (!DEMO && S.screen === 's-home') { await loadBoot(); } }, 60000);
   addEventListener('online', () => { renderNet(); syncOutbox(); loadBoot(); }); addEventListener('offline', renderNet);
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
   window.__pelican = { S, R, T, get TEAM() { return TEAM; } };
