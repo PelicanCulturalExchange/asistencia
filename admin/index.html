@@ -1,7 +1,31 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pelican · Administración</title>
-<meta http-equiv="refresh" content="0;url=https://script.google.com/a/macros/pelican.lat/s/AKfycbww0NFXtmZOR332M3VA9h8_Ooi0qXtUAGIZiTB9iwWtm1vmRT1_8PrTUli3q8UeyDNPSw/exec?page=admin">
-<style>body{margin:0;background:#172A34;color:#F5F8F7;font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center}a{color:#8DD3A2}</style></head>
-<body><p>Abriendo el panel de administración…<br><br><a href="https://script.google.com/a/macros/pelican.lat/s/AKfycbww0NFXtmZOR332M3VA9h8_Ooi0qXtUAGIZiTB9iwWtm1vmRT1_8PrTUli3q8UeyDNPSw/exec?page=admin">Si no abre solo, toca aquí</a></p>
-<script>location.replace("https://script.google.com/a/macros/pelican.lat/s/AKfycbww0NFXtmZOR332M3VA9h8_Ooi0qXtUAGIZiTB9iwWtm1vmRT1_8PrTUli3q8UeyDNPSw/exec?page=admin")</script></body></html>
+<title>Pelican · Acceso administración</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;display:grid;place-items:center;padding:20px;background:#172A34;color:#F5F8F7;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.card{width:100%;max-width:400px;background:#1F323C;border-radius:28px;padding:34px 28px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+img{width:64px;height:64px;margin-bottom:14px}
+h1{font-size:22px;margin-bottom:6px}
+p{color:#C9EAD3;font-size:14px;margin-bottom:22px}
+a.b{display:flex;align-items:center;gap:12px;text-align:left;margin-top:12px;padding:14px 16px;border-radius:18px;background:#14222A;color:#F5F8F7;text-decoration:none;border:2px solid transparent;transition:.15s}
+a.b:hover{border-color:#8DD3A2;transform:translateY(-1px)}
+.av{flex:none;width:42px;height:42px;border-radius:50%;background:linear-gradient(#C9EAD3,#8DD3A2);color:#14222A;font-weight:800;display:grid;place-items:center}
+b{display:block;font-size:15px}small{color:#9BDAAE;font-size:12px}
+.o{display:block;margin-top:20px;color:#9BDAAE;font-size:13px}
+</style></head><body>
+<div class="card">
+<img src="../assets/isotipo.png" alt="">
+<h1>Panel de administración</h1>
+<p>Elige con qué cuenta quieres entrar</p>
+<a class="b" id="a1" href="#"><span class="av">EA</span><span><b>Elián Arias</b><small>elian.arias@pelican.lat</small></span></a>
+<a class="b" id="a2" href="#"><span class="av">MS</span><span><b>Management Support</b><small>admin.ec@pelican.lat</small></span></a>
+<a class="o" id="o" href="#">Usar otra cuenta de Google</a>
+</div>
+<script>
+var U='https://script.google.com/a/macros/pelican.lat/s/AKfycbww0NFXtmZOR332M3VA9h8_Ooi0qXtUAGIZiTB9iwWtm1vmRT1_8PrTUli3q8UeyDNPSw/exec?page=admin';
+function link(m){return 'https://accounts.google.com/AccountChooser?Email='+encodeURIComponent(m)+'&continue='+encodeURIComponent(U+'&authuser='+encodeURIComponent(m))}
+document.getElementById('a1').href=link('elian.arias@pelican.lat');
+document.getElementById('a2').href=link('admin.ec@pelican.lat');
+document.getElementById('o').href='https://accounts.google.com/AccountChooser?continue='+encodeURIComponent(U);
+</script></body></html>
