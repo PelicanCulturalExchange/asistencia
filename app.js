@@ -361,7 +361,7 @@ async function send() {
   const ts = T.now(), date = R.ymd(ts), before = stats(e).medals;
   const m = { id: `${e.id}|${date}|${f.action}`, emp: e.id, date, type: f.action, ts, verified: T.verified(), photo: f.photo, synced: false, office: OFFICE };
   const extra = R.extraDay(date, CTX) && !R.isWorkday(e, date, CTX);
-  if (f.action === 'in') { if (extra) m.extra = true; else if (e.boss) Object.assign(m, { late: false, lateMin: 0, fine: 0, pts: 0, bonus: 0, streak: 0, early: false }); else Object.assign(m, R.scoreIn(e, S.marks, CTX, ts)); }
+  if (f.action === 'in') { if (extra) m.extra = true; else if (e.boss || (e.nuevo && !S.marks.some(x => x.emp === e.id))) Object.assign(m, { late: false, lateMin: 0, fine: 0, pts: 0, bonus: 0, streak: 0, early: false, first: !e.boss }); else Object.assign(m, R.scoreIn(e, S.marks, CTX, ts)); }
   if (f.action === 'out') { m.clean = true; if (f.early) { m.early = true; m.authBy = 'Elián'; } if (f.isCloser) m.closer = true; if (extra) m.extra = true; }
   if (S.marks.some(x => x.id === m.id)) return home();
   await dbPut(m); S.marks.push(m); stopCam(); syncOutbox();
@@ -375,13 +375,14 @@ function result(m, before) {
   if (m.type === 'in') {
     late = !!m.late;
     if (m.extra) { eb = 'Jornada especial'; hero = stkWords('¡Gracias por venir,', '') + ' ' + stkWords(first + '!', 'g'); msg = 'Tu entrada de hoy cuenta como horas extra.'; pose = 'cheer'; }
+    else if (m.first) { eb = 'Primer día'; hero = stkWords('¡Bienvenido/a,', '') + ' ' + stkWords(first + '!', 'g'); msg = 'Hoy es tu primer día: tu hora de entrada queda registrada y no lleva multa. Desde mañana empieza tu racha.'; pose = 'cheer'; }
     else if (late) { const b = Math.ceil(m.lateMin / 60); eb = 'Entrada con retraso'; pose = 'think'; hero = stkWords('Llegaste a las ' + hm, '');
       msg = `Multa de $${m.fine} (${b} ${b === 1 ? 'hora o fracción' : 'horas o fracción'} de retraso). ${DEMO ? 'Queda registrado con tu foto.' : 'Te llegará un correo con el detalle.'} Mañana empiezas una racha nueva.`; }
     else { eb = 'Entrada registrada'; hero = stkWords('¡Llegaste a tiempo,', '') + ' ' + stkWords(first + '!', 'g');
       msg = st.streak >= 2 ? `Llevas ${st.streak} días seguidos llegando a tiempo. Buen trabajo.` : 'Entrada registrada. ¡Vamos por la racha!'; }
     const newM = st.medals.filter(k => !before.includes(k)); if (newM.length) pose = 'cheer';
     const rk = st.rank, fl = [];
-    extraHTML = quoteHTML() + (m.extra || e.boss ? '' : `${statCards([[String(st.streak), 'Racha (días)', 'i-flame'], ['+' + m.pts, 'Puntos de hoy'], [String(st.monthPts), 'Puntos del mes']])}
+    extraHTML = quoteHTML() + (m.extra || e.boss || m.first ? '' : `${statCards([[String(st.streak), 'Racha (días)', 'i-flame'], ['+' + m.pts, 'Puntos de hoy'], [String(st.monthPts), 'Puntos del mes']])}
       <div class="panel"><div class="rk"><span>${esc(rk.name)}${rk.prize ? ` · ${esc(rk.prize)}` : ''}</span><span>${rk.next ? `${rk.next.need} pts para ${esc(rk.next.name)}` : '¡Rango máximo!'}</span></div><div class="bar2"><i id="bar"></i></div></div>
       <div class="duo"><div class="panel"><h3>Tu semana</h3><div class="week">${st.week.map(d => `<div class="day ${d.s}">${d.d}<svg>${d.s === 'ok' ? '<use href="#i-check"/>' : d.s === 'late' ? '<use href="#i-clock"/>' : d.s === 'today' ? '<use href="#i-sun"/>' : ''}</svg></div>`).join('')}</div></div>
       <div class="panel"><h3>Medallas</h3><div class="medals">${Object.keys(MEDALS).map(k => `<div class="medal ${st.medals.includes(k) ? 'got' : ''} ${newM.includes(k) ? 'new' : ''}"><svg><use href="#${MEDALS[k][1]}"/></svg>${MEDALS[k][0]}</div>`).join('')}</div></div></div>`);
