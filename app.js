@@ -190,8 +190,8 @@ function home() {
     </div>
     <div class="col col-r">
       <div class="panel top3"><h3>Top de la semana</h3>${top.length ? `<ol>${top.map((x, i) => `<li><span>${i + 1}. ${esc(x.e.name)}</span><span>${x.st.weekPts} pts</span></li>`).join('')}</ol>` : '<div class="empty">Aún sin puntos esta semana</div>'}</div>
-      <div class="panel goal"><h3>Pizza Day del equipo</h3><div class="bar"><i style="width:${pct}%"></i><u style="left:${CFG.TEAM_GOAL * 100}%"></u></div>
-        <p>${tp.total ? `El equipo va <b>${pct}%</b> de puntualidad. Meta: ${CFG.TEAM_GOAL * 100}%.` : 'Empieza el mes: ¡a llegar a tiempo todos!'}</p></div>
+      <div class="panel goal"><h3>Pizza Day del equipo</h3><div class="bar"><i class="${pct >= CFG.TEAM_GOAL * 100 ? '' : 'low'}" style="width:${tp.total ? pct : 0}%"></i><u style="left:${CFG.TEAM_GOAL * 100}%"></u></div>
+        <p>${tp.total ? `El equipo va <b>${pct}%</b> de puntualidad este mes (${tp.ok} de ${tp.total} llegadas a tiempo). Meta: ${CFG.TEAM_GOAL * 100}% 🍕` : 'Empieza el mes: ¡a llegar a tiempo todos!'}</p></div>
       ${bd.length ? `<div class="panel"><h3>Cumpleaños de la semana</h3>${bd.map(e => `<div class="bday">${esc(e.name)} · ${e.bday.split('-').reverse().join('/')}</div>`).join('')}</div>` : ''}
       <img class="jaycol" src="assets/jay-wave.webp" alt="">
     </div>

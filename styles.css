@@ -115,6 +115,7 @@ img{display:block;max-width:100%}
 .top3 li span:last-child{color:var(--g3)}
 .goal .bar{position:relative;height:16px;border-radius:999px;background:color-mix(in srgb,var(--w) 14%,transparent);overflow:visible}
 .goal .bar i{display:block;height:100%;border-radius:999px;background:var(--g1)}
+.goal .bar i.low{background:var(--b1)}
 .goal .bar u{position:absolute;top:-5px;bottom:-5px;width:3px;background:var(--w);border-radius:2px}
 .goal p{font-size:14px;font-weight:600;margin-top:10px}
 .bday{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
