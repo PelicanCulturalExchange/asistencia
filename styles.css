@@ -220,3 +220,4 @@ img{display:block;max-width:100%}
 @media (max-height:880px){.res .main{gap:10px}.hero{padding:16px 22px}.hero .stk-wrap{font-size:clamp(28px,4vw,44px)}.hero p{margin-top:8px;font-size:16px}.res .quote{padding:12px 18px}.res .quote p{font-size:17px}.stat{padding:8px}.res .panel{padding:10px 14px}.week .day{height:44px}.res .actions{margin-top:0}}
 .daily{width:min(560px,92vw);margin:2px auto 0;padding:10px 16px;border-radius:18px;background:var(--g3);color:var(--n2);font-size:14px;line-height:1.35;text-align:left}
 .daily p{margin:3px 0}.daily b{color:var(--b3)}
+.av .pic{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}

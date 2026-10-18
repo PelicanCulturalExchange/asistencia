@@ -9,6 +9,7 @@ const ENDPOINT = (window.PEL_CONFIG && window.PEL_CONFIG.ENDPOINT) || '';   // U
 const DEMO = !ENDPOINT || qs.has('demo');   // ?demo=1 → versión de prueba aislada (no toca datos reales)
 let OFFICE = 'Oficina Quito';
 const $ = s => document.querySelector(s);
+const avImg = e => (e && e.avatar) ? `<img class="pic" alt="" src="${e.avatar}">` : esc(initials((e && e.name) || ''));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* ---------------- Tiempo ---------------- */
@@ -170,7 +171,7 @@ function home() {
     else if (st.status === 'off') label = 'Libre hoy';
     else if (st.status === 'permit') label = 'Permiso';
     return `<button class="tile ${cls}" data-id="${e.id}">${st.streak > 0 ? `<span class="fl"><svg><use href="#i-flame"/></svg>${st.streak}</span>` : ''}
-      <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${esc(initials(e.name))}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
+      <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${avImg(e)}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
   }).join('');
   $('#s-home').innerHTML = `
   <div class="top"><div class="logo"><img src="assets/logo.png" alt="Pelican"></div><span class="office">${OFFICE}</span><div class="net" id="net"><i></i><span></span></div></div>
@@ -256,7 +257,7 @@ function askPin({ id, name, title, onOk }) {
   let pin = '', busy = false;
   const draw = () => [...document.querySelectorAll('#dots i')].forEach((d, i) => d.classList.toggle('f', i < pin.length));
   $('#s-pin').innerHTML = `<div class="top"><div class="logo"><img src="assets/logo.png" alt=""></div><span class="office">${OFFICE}</span></div>
-    <div class="center"><div class="av">${esc(initials(name))}</div><h2 class="stk-wrap" style="font-size:38px">${stkWords(name, 'g')}</h2>
+    <div class="center"><div class="av">${avImg(TEAM.find(x => x.id === id) || { name })}</div><h2 class="stk-wrap" style="font-size:38px">${stkWords(name, 'g')}</h2>
     <p style="font-weight:600;color:var(--g3)">${esc(title)}</p><div class="dots" id="dots"><i></i><i></i><i></i><i></i></div><div class="msg" id="pm"></div>
     <div class="keys" id="keys"></div><button class="link" id="pc">Cancelar</button></div>`;
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].forEach(v => {
