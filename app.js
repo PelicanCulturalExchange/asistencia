@@ -174,7 +174,7 @@ function home() {
       <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${avImg(e)}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
   }).join('');
   $('#s-home').innerHTML = `
-  <div class="top"><div class="logo"><img src="assets/logo.png" alt="Pelican"></div><span class="office">${OFFICE}</span><div class="net" id="net"><i></i><span></span></div></div>
+  <div class="top"><div class="logo"><img src="assets/logo.png" alt="Pelican"></div><span class="office">${OFFICE}</span><div class="net" id="net"><i></i><span></span></div><button class="fsb" id="fsb" type="button">⛶ Pantalla completa</button></div>
   <div class="home">
     <div class="col">
       <div><div class="clock"><span id="ck">--:--</span><small id="sc"></small></div><div class="date" id="dt"></div></div>
@@ -330,7 +330,7 @@ async function camera() {
     <div class="daily"><p><b>💡 Dato curioso:</b> ${esc(window.Daily.fact(today()))}</p><p><b>🎵 Hoy suena:</b> ${esc(window.Daily.music(today()))}</p></div>
     <div class="row" id="cb"><button class="btn" id="snap">Tomar foto</button></div><button class="link" id="cc">Cancelar</button></div>`;
   $('#snap').onclick = snap; $('#cc').onclick = () => { stopCam(); home(); }; go('s-cam');
-  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false }); $('#vid').srcObject = stream; }
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 720 } }, audio: false }); $('#vid').srcObject = stream; }
   catch (e) { $('#cm').textContent = 'No pude abrir la cámara. Permite el acceso a la cámara en la tablet.'; $('#snap').disabled = true; }
 }
 function drawBar(x, W, H, info) {
@@ -470,6 +470,16 @@ async function loadBoot() {
   home();
   setInterval(tick, 1000); setInterval(() => { if (S.screen === 's-home') home(); }, 60000); setInterval(syncOutbox, 30000);
   setInterval(async () => { if (!DEMO && S.screen === 's-home') { await loadBoot(); } }, 60000);
+  /* Modo tablet fija: pantalla completa, pantalla siempre encendida y modo ligero para equipos modestos */
+  const inFs = () => !!(document.fullscreenElement || matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches);
+  const goFs = () => { const el = document.documentElement, f = el.requestFullscreen || el.webkitRequestFullscreen; if (f) { try { const r = f.call(el); if (r && r.catch) r.catch(() => {}); } catch (e) {} } };
+  const syncFs = () => document.documentElement.classList.toggle('isfs', inFs());
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#fsb')) goFs(); });
+  let fsTried = false; document.addEventListener('pointerup', e => { if (!fsTried && e.pointerType === 'touch' && !inFs()) { fsTried = true; goFs(); } }, { passive: true });
+  document.addEventListener('fullscreenchange', syncFs); syncFs();
+  const keepOn = async () => { try { if (navigator.wakeLock && document.visibilityState === 'visible') await navigator.wakeLock.request('screen'); } catch (e) {} };
+  keepOn(); document.addEventListener('visibilitychange', keepOn); document.addEventListener('pointerup', keepOn, { passive: true });
+  if ((navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) document.documentElement.classList.add('lite');
   addEventListener('online', () => { renderNet(); syncOutbox(); loadBoot(); }); addEventListener('offline', renderNet);
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
   window.__pelican = { S, R, T, get TEAM() { return TEAM; } };

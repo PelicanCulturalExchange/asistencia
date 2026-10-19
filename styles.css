@@ -245,3 +245,24 @@ img{display:block;max-width:100%}
   .daily{padding:6px 12px;font-size:12px;border-radius:14px}.daily p{margin:1px 0}
   .btn{min-height:52px;font-size:18px}
 }
+
+/* ---- Tablet fija (BlackView ~10", pantalla 1200x800): botón de pantalla completa, modo ligero y pantalla de inicio sin desplazamiento ---- */
+.fsb{margin-left:10px;padding:10px 16px;min-height:44px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-weight:700;font-size:14px;color:var(--g3)}
+.fsb:active{background:var(--b2)}
+.isfs .fsb{display:none}
+.net{margin-left:auto}
+@media (display-mode:fullscreen),(display-mode:standalone){.fsb{display:none}}
+.lite *,.lite *::before,.lite *::after{animation:none!important;transition:none!important}
+.lite .btn,.lite .tile,.lite .quote,.lite .panel{box-shadow:none!important}
+@media (max-height:720px){.key{height:clamp(46px,9.4vh,78px)}}
+@media (min-width:700px) and (max-width:1100px) and (max-height:700px){
+  .home{grid-template-columns:240px minmax(0,1fr);gap:12px;margin-top:6px}
+  .home .col .quote{display:none}
+  .clock{font-size:64px}.date{font-size:15px}
+  .banner{padding:8px 12px;font-size:14px}
+  .jar{padding:10px;gap:10px}.jar svg{width:64px;height:80px}.jar .amt{font-size:30px}
+  .h2{font-size:21px}.mid{gap:8px}
+  .lunches{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+  .lcard{padding:6px 10px;gap:10px}.lcard .ring{width:50px;height:50px}.ring b{font-size:13px}.lcard .nm{font-size:15px}.lcard .sub{font-size:11px}
+  .grid{gap:8px}.tile{padding:8px 4px 6px}.tile .av{width:46px;height:46px;font-size:20px}.tile .nm{font-size:16px}
+}
