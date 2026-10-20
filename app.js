@@ -118,7 +118,7 @@ async function checkPin(id, pin) {
 /* ---------------- Helpers de UI ---------------- */
 const initials = n => n.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 const stkWords = (t, cls) => t.split(' ').map(w => `<span class="stk ${cls || ''}" data-t="${esc(w)}">${esc(w)}</span>`).join(' ');
-const go = id => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $('#' + id).classList.add('on'); S.screen = id; bump(); };
+const go = id => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $('#' + id).classList.add('on'); S.screen = id; if (id !== 's-res') clearTimeout(rt); bump(); };
 const stats = e => R.statsFor(e, S.marks, CTX, today());
 const quoteOfDay = () => window.Quotes.ofDay(R.dayNum(today()), S.quotes);
 const quoteHTML = () => { const [t, a] = quoteOfDay(); return `<div class="quote"><div class="eb">Frase del día</div><p>“${esc(t)}”</p><cite>— ${esc(a)}</cite></div>`; };
