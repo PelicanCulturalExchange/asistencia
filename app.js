@@ -309,7 +309,7 @@ function begin(action) {
   const end = (R.extraDay(today(), CTX) && !R.schedFor(e, today())) ? R.extraDay(today(), CTX).to : (R.schedFor(e, today()) || [0, CFG.END])[1];
   if (!e.boss && R.minOfDay(T.now()) < R.toMin(end)) {
     return modal({ title: 'Todavía no es hora', text: `La salida es a las ${end}. No se puede salir antes sin autorización.`, pose: 'point',
-      buttons: [{ label: 'Volver', cls: 'ghost', fn: home }, { label: 'Tengo autorización', cls: 'blue', fn: () => askPin({ id: 'boss', name: 'Elián', title: 'PIN de autorización', onOk: () => { f.early = true; checklist(); } }) }] });
+      buttons: [{ label: 'Volver', cls: 'ghost', fn: home }, { label: 'Tengo autorización', cls: 'blue', fn: () => askPin({ id: 'boss', name: 'Administración', title: 'PIN de autorización', onOk: () => { f.early = true; checklist(); } }) }] });
   }
   checklist();
 }
@@ -323,7 +323,7 @@ function fieldFlow() {
     <div class="big-actions" id="why"></div>
     <div class="fr"><label>Desde<input type="time" id="tf" value="${from0}"></label><label>Hasta (aprox.)<input type="time" id="tt" value="${to0}"></label></div>
     <p class="msg" id="fm" style="min-height:22px"></p>
-    <div class="row"><button class="btn" id="fgo">Avisar a Elián</button><button class="btn ghost" id="fpin">Ya me autorizó (PIN)</button></div><button class="link" id="fc">Cancelar</button></div>`;
+    <div class="row"><button class="btn" id="fgo">Avisar a RRHH</button><button class="btn ghost" id="fpin">Aprobar ahora (PIN de Administración)</button></div><button class="link" id="fc">Cancelar</button></div>`;
   ['Universidad', 'Reunión o cliente', 'Otro trabajo externo'].forEach(w => {
     const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = w;
     b.onclick = () => { why = w; document.querySelectorAll('#why .btn').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); $('#fm').textContent = ''; };
@@ -346,10 +346,10 @@ function fieldFlow() {
     const k = d + '|' + e.id; (S.outs[k] = S.outs[k] || []).push({ id, why, from, to, est: approved ? 'aprobado' : 'pendiente', back: '' });
     modal(approved
       ? { title: 'Fuera de base', text: `${e.name}, quedó autorizado: ${why} de ${from} a ${to}. Tu jornada cuenta como cumplida. Cuando vuelvas, toca "De vuelta a base".`, pose: 'thumbs', buttons: [{ label: 'Listo', fn: home }] }
-      : { title: 'Aviso enviado', text: `${e.name}, le avisamos a Elián: ${why} de ${from} a ${to}. Queda pendiente de su aprobación. Cuando vuelvas, toca "De vuelta a base".`, pose: 'thumbs', buttons: [{ label: 'Listo', fn: home }] });
+      : { title: 'Aviso enviado', text: `${e.name}, le avisamos a RRHH: ${why} de ${from} a ${to}. Queda pendiente de su aprobación. Cuando vuelvas, toca "De vuelta a base".`, pose: 'thumbs', buttons: [{ label: 'Listo', fn: home }] });
   };
   $('#fgo').onclick = () => { const t = check(); if (t) submit(false, t.from, t.to); };
-  $('#fpin').onclick = () => { const t = check(); if (t) askPin({ id: 'boss', name: 'Elián', title: 'PIN de autorización', onOk: () => submit(true, t.from, t.to) }); };
+  $('#fpin').onclick = () => { const t = check(); if (t) askPin({ id: 'boss', name: 'Administración', title: 'PIN de autorización', onOk: () => submit(true, t.from, t.to) }); };
   go('s-act');
 }
 
@@ -427,7 +427,7 @@ async function send() {
   const extra = R.extraDay(date, CTX) && !R.isWorkday(e, date, CTX);
   if (f.action === 'in') { if (extra) m.extra = true; else if (e.boss || (e.nuevo && !S.marks.some(x => x.emp === e.id))) Object.assign(m, { late: false, lateMin: 0, fine: 0, pts: 0, bonus: 0, streak: 0, early: false, first: !e.boss }); else { const sc = R.scoreIn(e, S.marks, CTX, ts), og = (S.outs[date + '|' + e.id] || [])[0], sd = R.schedFor(e, date);
       if (og && sd && sc.late && R.toMin(og.from) <= R.toMin(sd[0])) { const li = R.lateInfo(og.to, R.minOfDay(ts)); if (!li.late) Object.assign(m, R.scoreIn(e, S.marks, CTX, R.tsOf(date, sd[0])), { early: false }); else Object.assign(m, sc, li); } else Object.assign(m, sc); } }
-  if (f.action === 'out') { m.clean = true; if (f.early) { m.early = true; m.authBy = 'Elián'; } if (f.isCloser) m.closer = true; if (extra) m.extra = true; }
+  if (f.action === 'out') { m.clean = true; if (f.early) { m.early = true; m.authBy = 'Administración'; } if (f.isCloser) m.closer = true; if (extra) m.extra = true; }
   if (S.marks.some(x => x.id === m.id)) return home();
   await dbPut(m); S.marks.push(m); stopCam(); syncOutbox();
   result(m, before);
