@@ -170,7 +170,7 @@ function home() {
     else if (st.status === 'done') label = 'Salió ' + R.hm(st.today.out.ts);
     else if (st.status === 'off') label = 'Libre hoy';
     else if (st.status === 'permit') label = 'Permiso';
-    const og = (S.outs[d + '|' + e.id] || [])[0]; if (og && (st.status === 'working' || st.status === 'lunch')) label = `Fuera ${og.from}–${og.to}`;
+    const og = (S.outs[d + '|' + e.id] || [])[0]; if (og && (st.status === 'working' || st.status === 'lunch')) label = og.back ? label : `Fuera de base ${og.from}`;
     return `<button class="tile ${cls}" data-id="${e.id}">${st.streak > 0 ? `<span class="fl"><svg><use href="#i-flame"/></svg>${st.streak}</span>` : ''}
       <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${avImg(e)}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
   }).join('');
@@ -279,11 +279,20 @@ function askPin({ id, name, title, onOk }) {
   $('#pc').onclick = home; go('s-pin');
 }
 
+/* Salida abierta de hoy (Fuera de base): empezó y todavía no marcó "De vuelta a base" */
+function openOut(e) {
+  const d = today(), og = (S.outs[d + '|' + e.id] || []).filter(o => !o.back && o.est !== 'negado').pop();
+  return og && R.toMin(og.from) <= R.minOfDay(T.now()) ? og : null;
+}
+
 function chooseAction(e, st) {
   const opts = [];
   if (st.status === 'pending') opts.push(['in', 'Registrar mi entrada']);
   else if (st.status === 'lunch') opts.push(['lunch_in', 'Regresé del almuerzo']);
-  else if (st.status === 'working') { if (e.lunch && !st.today.lunch_out) opts.push(['lunch_out', 'Salir a almuerzo']); opts.push(['out', 'Terminar mi jornada']); opts.push(['field', 'Salgo a la U / trabajo externo']); }
+  else if (st.status === 'working') {
+    if (openOut(e)) { opts.push(['back', 'De vuelta a base']); opts.push(['out', 'Terminar mi jornada']); }
+    else { if (e.lunch && !st.today.lunch_out) opts.push(['lunch_out', 'Salir a almuerzo']); opts.push(['out', 'Terminar mi jornada']); opts.push(['field', 'Fuera de base']); }
+  }
   if (opts.length === 1) return begin(opts[0][0]);
   $('#s-act').innerHTML = `<div class="top"><div class="logo"><img src="assets/logo.png" alt=""></div><span class="office">${OFFICE}</span></div>
     <div class="center"><h2 class="stk-wrap" style="font-size:40px">${stkWords('¿Qué vas a', '')} ${stkWords('registrar?', 'g')}</h2><div class="big-actions" id="ba"></div><button class="link" id="ac">Cancelar</button></div>`;
@@ -295,6 +304,7 @@ function chooseAction(e, st) {
 function begin(action) {
   const f = S.flow, e = f.emp; f.action = action;
   if (action === 'field') return fieldFlow();
+  if (action === 'back') return backFlow();
   if (action !== 'out') return camera();
   const end = (R.extraDay(today(), CTX) && !R.schedFor(e, today())) ? R.extraDay(today(), CTX).to : (R.schedFor(e, today()) || [0, CFG.END])[1];
   if (!e.boss && R.minOfDay(T.now()) < R.toMin(end)) {
@@ -304,37 +314,56 @@ function begin(action) {
   checklist();
 }
 
-/* ---------------- Salida a la U / trabajo externo (autoriza Elián con su PIN) ---------------- */
+/* ---------------- Fuera de base / De vuelta a base ---------------- */
 function fieldFlow() {
   const f = S.flow, e = f.emp, d = today(), sc = R.schedFor(e, d), from0 = R.hm(T.now()), to0 = sc ? sc[1] : CFG.END;
   let why = '';
   $('#s-act').innerHTML = `<div class="top"><div class="logo"><img src="assets/logo.png" alt=""></div><span class="office">${OFFICE}</span></div>
     <div class="center"><h2 class="stk-wrap" style="font-size:36px">${stkWords('¿A dónde', '')} ${stkWords('vas?', 'g')}</h2>
     <div class="big-actions" id="why"></div>
-    <div class="fr"><label>Desde<input type="time" id="tf" value="${from0}"></label><label>Hasta<input type="time" id="tt" value="${to0}"></label></div>
+    <div class="fr"><label>Desde<input type="time" id="tf" value="${from0}"></label><label>Hasta (aprox.)<input type="time" id="tt" value="${to0}"></label></div>
     <p class="msg" id="fm" style="min-height:22px"></p>
-    <div class="row"><button class="btn" id="fgo">Pedir autorización</button></div><button class="link" id="fc">Cancelar</button></div>`;
+    <div class="row"><button class="btn" id="fgo">Avisar a Elián</button><button class="btn ghost" id="fpin">Ya me autorizó (PIN)</button></div><button class="link" id="fc">Cancelar</button></div>`;
   ['Universidad', 'Reunión o cliente', 'Otro trabajo externo'].forEach(w => {
     const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = w;
     b.onclick = () => { why = w; document.querySelectorAll('#why .btn').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); $('#fm').textContent = ''; };
     $('#why').appendChild(b);
   });
   $('#fc').onclick = home;
-  $('#fgo').onclick = () => {
+  const check = () => {
     const from = $('#tf').value, to = $('#tt').value, msg = t => { $('#fm').textContent = t; };
-    if (!why) return msg('Elige a dónde vas.');
-    if (!/^\d\d:\d\d$/.test(from) || !/^\d\d:\d\d$/.test(to) || R.toMin(to) <= R.toMin(from)) return msg('Revisa las horas: "Hasta" debe ser después de "Desde".');
-    askPin({ id: 'boss', name: 'Elián', title: 'PIN de autorización', onOk: async () => {
-      if (!DEMO) {
-        if (!navigator.onLine) return modal({ title: 'Sin internet', text: 'Para registrar una salida externa la tablet necesita internet. Inténtalo de nuevo cuando vuelva la conexión.', pose: 'think', buttons: [{ label: 'Listo', fn: home }] });
-        try { const r = await api({ action: 'outing', t: localStorage.getItem('pel_dev') || '', out: { emp: e.id, date: d, why, from, to } }); if (!r.ok) throw new Error(r.error); }
-        catch (x) { return modal({ title: 'No se pudo guardar', text: 'Revisa la conexión e inténtalo otra vez.', pose: 'think', buttons: [{ label: 'Listo', fn: home }] }); }
-      }
-      const k = d + '|' + e.id; (S.outs[k] = S.outs[k] || []).push({ why, from, to });
-      modal({ title: 'Salida autorizada', text: `${e.name}, quedó registrado: ${why} de ${from} a ${to}. Tu jornada cuenta como cumplida.`, pose: 'thumbs', buttons: [{ label: 'Listo', fn: home }] });
-    } });
+    if (!why) { msg('Elige a dónde vas.'); return null; }
+    if (!/^\d\d:\d\d$/.test(from) || !/^\d\d:\d\d$/.test(to) || R.toMin(to) <= R.toMin(from)) { msg('Revisa las horas: "Hasta" debe ser después de "Desde".'); return null; }
+    return { from, to };
   };
+  const submit = async (approved, from, to) => {
+    const id = `${e.id}|${d}|${from}|salida`;
+    if (!DEMO) {
+      if (!navigator.onLine) return modal({ title: 'Sin internet', text: 'Para avisar la salida la tablet necesita internet. Inténtalo de nuevo cuando vuelva la conexión.', pose: 'think', buttons: [{ label: 'Listo', fn: home }] });
+      try { const r = await api({ action: 'outing', t: localStorage.getItem('pel_dev') || '', out: { emp: e.id, date: d, why, from, to, approved } }); if (!r.ok) throw new Error(r.error); }
+      catch (x) { return modal({ title: 'No se pudo guardar', text: 'Revisa la conexión e inténtalo otra vez.', pose: 'think', buttons: [{ label: 'Listo', fn: home }] }); }
+    }
+    const k = d + '|' + e.id; (S.outs[k] = S.outs[k] || []).push({ id, why, from, to, est: approved ? 'aprobado' : 'pendiente', back: '' });
+    modal(approved
+      ? { title: 'Fuera de base', text: `${e.name}, quedó autorizado: ${why} de ${from} a ${to}. Tu jornada cuenta como cumplida. Cuando vuelvas, toca "De vuelta a base".`, pose: 'thumbs', buttons: [{ label: 'Listo', fn: home }] }
+      : { title: 'Aviso enviado', text: `${e.name}, le avisamos a Elián: ${why} de ${from} a ${to}. Queda pendiente de su aprobación. Cuando vuelvas, toca "De vuelta a base".`, pose: 'thumbs', buttons: [{ label: 'Listo', fn: home }] });
+  };
+  $('#fgo').onclick = () => { const t = check(); if (t) submit(false, t.from, t.to); };
+  $('#fpin').onclick = () => { const t = check(); if (t) askPin({ id: 'boss', name: 'Elián', title: 'PIN de autorización', onOk: () => submit(true, t.from, t.to) }); };
   go('s-act');
+}
+
+async function backFlow() {
+  const f = S.flow, e = f.emp, og = openOut(e), hm0 = R.hm(T.now());
+  if (!og) return home();
+  let hm = hm0;
+  if (!DEMO) {
+    if (!navigator.onLine) return modal({ title: 'Sin internet', text: 'Para marcar tu regreso la tablet necesita internet. Inténtalo de nuevo cuando vuelva la conexión.', pose: 'think', buttons: [{ label: 'Listo', fn: home }] });
+    try { const r = await api({ action: 'outing_back', t: localStorage.getItem('pel_dev') || '', out: { id: og.id } }); if (!r.ok) throw new Error(r.error); hm = r.back || hm0; }
+    catch (x) { return modal({ title: 'No se pudo guardar', text: 'Revisa la conexión e inténtalo otra vez.', pose: 'think', buttons: [{ label: 'Listo', fn: home }] }); }
+  }
+  og.back = hm;
+  modal({ title: 'De vuelta a base', text: `¡Qué bueno que estás de vuelta, ${e.name}! Quedó registrado tu regreso a las ${hm}.`, pose: 'thumbs', buttons: [{ label: 'Listo', fn: home }] });
 }
 
 function checklist() {
