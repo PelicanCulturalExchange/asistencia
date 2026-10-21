@@ -429,6 +429,7 @@ async function send() {
       if (og && sd && sc.late && R.toMin(og.from) <= R.toMin(sd[0])) { const li = R.lateInfo(og.to, R.minOfDay(ts)); if (!li.late) Object.assign(m, R.scoreIn(e, S.marks, CTX, R.tsOf(date, sd[0])), { early: false }); else Object.assign(m, sc, li); } else Object.assign(m, sc); } }
   if (f.action === 'out') { m.clean = true; if (f.early) { m.early = true; m.authBy = 'Administración'; } if (f.isCloser) m.closer = true; if (extra) m.extra = true; }
   if (S.marks.some(x => x.id === m.id)) return home();
+  if (f.action === 'out') { const og = openOut(e); if (og) { let hb = R.hm(ts); if (!DEMO && navigator.onLine) { try { const r = await api({ action: 'outing_back', t: localStorage.getItem('pel_dev') || '', out: { id: og.id } }); if (r.ok && r.back) hb = r.back; } catch (x) {} } og.back = hb; } }
   await dbPut(m); S.marks.push(m); stopCam(); syncOutbox();
   result(m, before);
 }
