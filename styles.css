@@ -266,3 +266,10 @@ img{display:block;max-width:100%}
   .lcard{padding:6px 10px;gap:10px}.lcard .ring{width:50px;height:50px}.ring b{font-size:13px}.lcard .nm{font-size:15px}.lcard .sub{font-size:11px}
   .grid{gap:8px}.tile{padding:8px 4px 6px}.tile .av{width:46px;height:46px;font-size:20px}.tile .nm{font-size:16px}
 }
+
+/* ---------- Salida a la U / trabajo externo ---------- */
+.fr{display:flex;gap:18px;justify-content:center;margin:14px 0 6px}
+.fr label{display:flex;flex-direction:column;gap:4px;font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--g3)}
+.fr input{font:800 30px/1 Poppins,sans-serif;color:var(--w);background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:10px 14px;min-width:150px;text-align:center}
+.btn.sel{background:var(--g1);color:var(--n2);border-color:var(--g1)}
+.tile .stt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

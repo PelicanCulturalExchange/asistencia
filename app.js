@@ -64,7 +64,7 @@ const dbAll = () => new Promise(res => { const q = store('readonly').getAll(); q
 const dbPut = m => new Promise((res, rej) => { const q = store('readwrite').put(m); q.onsuccess = () => res(); q.onerror = () => rej(q.error); });
 const dbPutMany = list => new Promise((res, rej) => { const t = db.transaction('marks', 'readwrite'); list.forEach(m => t.objectStore('marks').put(m)); t.oncomplete = res; t.onerror = () => rej(t.error); });
 
-const S = { marks: [], flow: null, quotes: null, jar: null };
+const S = { marks: [], flow: null, quotes: null, jar: null, outs: {} };
 const hhmm = min => R.pad(Math.floor(min / 60)) + ':' + R.pad(min % 60);
 
 /* ---------------- Datos de demostración ---------------- */
@@ -170,6 +170,7 @@ function home() {
     else if (st.status === 'done') label = 'Salió ' + R.hm(st.today.out.ts);
     else if (st.status === 'off') label = 'Libre hoy';
     else if (st.status === 'permit') label = 'Permiso';
+    const og = (S.outs[d + '|' + e.id] || [])[0]; if (og && (st.status === 'working' || st.status === 'lunch')) label = `Fuera ${og.from}–${og.to}`;
     return `<button class="tile ${cls}" data-id="${e.id}">${st.streak > 0 ? `<span class="fl"><svg><use href="#i-flame"/></svg>${st.streak}</span>` : ''}
       <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${avImg(e)}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
   }).join('');
@@ -282,7 +283,7 @@ function chooseAction(e, st) {
   const opts = [];
   if (st.status === 'pending') opts.push(['in', 'Registrar mi entrada']);
   else if (st.status === 'lunch') opts.push(['lunch_in', 'Regresé del almuerzo']);
-  else if (st.status === 'working') { if (e.lunch && !st.today.lunch_out) opts.push(['lunch_out', 'Salir a almuerzo']); opts.push(['out', 'Terminar mi jornada']); }
+  else if (st.status === 'working') { if (e.lunch && !st.today.lunch_out) opts.push(['lunch_out', 'Salir a almuerzo']); opts.push(['out', 'Terminar mi jornada']); opts.push(['field', 'Salgo a la U / trabajo externo']); }
   if (opts.length === 1) return begin(opts[0][0]);
   $('#s-act').innerHTML = `<div class="top"><div class="logo"><img src="assets/logo.png" alt=""></div><span class="office">${OFFICE}</span></div>
     <div class="center"><h2 class="stk-wrap" style="font-size:40px">${stkWords('¿Qué vas a', '')} ${stkWords('registrar?', 'g')}</h2><div class="big-actions" id="ba"></div><button class="link" id="ac">Cancelar</button></div>`;
@@ -293,6 +294,7 @@ function chooseAction(e, st) {
 /* ---------------- Flujo de cada marca ---------------- */
 function begin(action) {
   const f = S.flow, e = f.emp; f.action = action;
+  if (action === 'field') return fieldFlow();
   if (action !== 'out') return camera();
   const end = (R.extraDay(today(), CTX) && !R.schedFor(e, today())) ? R.extraDay(today(), CTX).to : (R.schedFor(e, today()) || [0, CFG.END])[1];
   if (!e.boss && R.minOfDay(T.now()) < R.toMin(end)) {
@@ -300,6 +302,39 @@ function begin(action) {
       buttons: [{ label: 'Volver', cls: 'ghost', fn: home }, { label: 'Tengo autorización', cls: 'blue', fn: () => askPin({ id: 'boss', name: 'Elián', title: 'PIN de autorización', onOk: () => { f.early = true; checklist(); } }) }] });
   }
   checklist();
+}
+
+/* ---------------- Salida a la U / trabajo externo (autoriza Elián con su PIN) ---------------- */
+function fieldFlow() {
+  const f = S.flow, e = f.emp, d = today(), sc = R.schedFor(e, d), from0 = R.hm(T.now()), to0 = sc ? sc[1] : CFG.END;
+  let why = '';
+  $('#s-act').innerHTML = `<div class="top"><div class="logo"><img src="assets/logo.png" alt=""></div><span class="office">${OFFICE}</span></div>
+    <div class="center"><h2 class="stk-wrap" style="font-size:36px">${stkWords('¿A dónde', '')} ${stkWords('vas?', 'g')}</h2>
+    <div class="big-actions" id="why"></div>
+    <div class="fr"><label>Desde<input type="time" id="tf" value="${from0}"></label><label>Hasta<input type="time" id="tt" value="${to0}"></label></div>
+    <p class="msg" id="fm" style="min-height:22px"></p>
+    <div class="row"><button class="btn" id="fgo">Pedir autorización</button></div><button class="link" id="fc">Cancelar</button></div>`;
+  ['Universidad', 'Reunión o cliente', 'Otro trabajo externo'].forEach(w => {
+    const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = w;
+    b.onclick = () => { why = w; document.querySelectorAll('#why .btn').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); $('#fm').textContent = ''; };
+    $('#why').appendChild(b);
+  });
+  $('#fc').onclick = home;
+  $('#fgo').onclick = () => {
+    const from = $('#tf').value, to = $('#tt').value, msg = t => { $('#fm').textContent = t; };
+    if (!why) return msg('Elige a dónde vas.');
+    if (!/^\d\d:\d\d$/.test(from) || !/^\d\d:\d\d$/.test(to) || R.toMin(to) <= R.toMin(from)) return msg('Revisa las horas: "Hasta" debe ser después de "Desde".');
+    askPin({ id: 'boss', name: 'Elián', title: 'PIN de autorización', onOk: async () => {
+      if (!DEMO) {
+        if (!navigator.onLine) return modal({ title: 'Sin internet', text: 'Para registrar una salida externa la tablet necesita internet. Inténtalo de nuevo cuando vuelva la conexión.', pose: 'think', buttons: [{ label: 'Listo', fn: home }] });
+        try { const r = await api({ action: 'outing', t: localStorage.getItem('pel_dev') || '', out: { emp: e.id, date: d, why, from, to } }); if (!r.ok) throw new Error(r.error); }
+        catch (x) { return modal({ title: 'No se pudo guardar', text: 'Revisa la conexión e inténtalo otra vez.', pose: 'think', buttons: [{ label: 'Listo', fn: home }] }); }
+      }
+      const k = d + '|' + e.id; (S.outs[k] = S.outs[k] || []).push({ why, from, to });
+      modal({ title: 'Salida autorizada', text: `${e.name}, quedó registrado: ${why} de ${from} a ${to}. Tu jornada cuenta como cumplida.`, pose: 'thumbs', buttons: [{ label: 'Listo', fn: home }] });
+    } });
+  };
+  go('s-act');
 }
 
 function checklist() {
@@ -442,7 +477,7 @@ async function enrollIfNeeded() {
 function applyBoot(b) {
   TEAM = b.team; CTX = b.ctx; S.quotes = b.quotes && b.quotes.length ? b.quotes : null; S.jar = b.jar || 0; OFFICE = 'Oficina ' + b.office;
   if (b.now) T.setOffset(b.now - Date.now());
-  TEAM.forEach(e => PINS[e.id] = e.pin);
+  TEAM.forEach(e => PINS[e.id] = e.pin); S.outs = b.outs || {};
   const local = S.marks.filter(m => !m.synced), ids = {}; local.forEach(m => ids[m.id] = 1);
   S.marks = b.marks.filter(m => !ids[m.id]).concat(local);
 }
