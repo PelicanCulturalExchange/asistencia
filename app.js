@@ -164,7 +164,7 @@ function home() {
   const tiles = team.map(({ e, st }) => {
     const inM = st.today.in, late = inM && inM.late;
     let label = '', cls = 's-' + st.status;
-    if (st.status === 'pending') label = e.boss ? 'Dirección' : 'Entra ' + (R.schedFor(e, d) ? R.schedFor(e, d)[0] : '');
+    if (st.status === 'pending') { const sd = R.schedFor(e, d), pg = (S.outs[d + '|' + e.id] || []).filter(o => o.est === 'aprobado' && !o.back && sd && R.toMin(o.from) <= R.toMin(sd[0])).pop(); label = e.boss ? 'Dirección' : pg ? 'Permiso hasta ' + pg.to : 'Entra ' + (sd ? sd[0] : ''); }
     else if (st.status === 'working') { label = late ? `Tarde · ${R.hm(inM.ts)}` : `✓ ${R.hm(inM.ts)}`; if (late) cls = 's-late'; }
     else if (st.status === 'lunch') label = 'En almuerzo';
     else if (st.status === 'done') label = 'Salió ' + R.hm(st.today.out.ts);
