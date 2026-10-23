@@ -42,7 +42,7 @@ let TEAM = [
   { id: 'boss', name: 'Elián', type: 'Dirección', boss: true, sched: std(FULL), lunch: true, rot: false }
 ];
 let CTX = { holidays: {}, leaves: {}, extra: {} };
-if (DEMO && qs.get('extra')) CTX.extra[qs.get('extra')] = { from: '09:00', to: '13:00' };
+if (DEMO && qs.get('extra')) CTX.extra[qs.get('extra')] = { from: '09:00', to: '13:00', who: qs.get('who') ? qs.get('who').split(',') : null };
 if (DEMO && qs.get('bday')) TEAM[4].bday = (qs.get('d') || R.ymd(Date.now())).slice(5);
 
 const QUOTES = window.Quotes.QUOTES;
@@ -164,7 +164,7 @@ function home() {
   const tiles = team.map(({ e, st }) => {
     const inM = st.today.in, late = inM && inM.late;
     let label = '', cls = 's-' + st.status;
-    if (st.status === 'pending') { const sd = R.schedFor(e, d), pg = (S.outs[d + '|' + e.id] || []).filter(o => o.est === 'aprobado' && !o.back && sd && R.toMin(o.from) <= R.toMin(sd[0])).pop(); label = e.boss ? 'Dirección' : pg ? 'Permiso hasta ' + pg.to : 'Entra ' + (sd ? sd[0] : ''); }
+    if (st.status === 'pending') { const xe = R.extraDay(d, CTX, e), sd = R.schedFor(e, d) || (xe ? [xe.from, xe.to] : null), pg = (S.outs[d + '|' + e.id] || []).filter(o => o.est === 'aprobado' && !o.back && sd && R.toMin(o.from) <= R.toMin(sd[0])).pop(); label = e.boss ? 'Dirección' : pg ? 'Permiso hasta ' + pg.to : 'Entra ' + (sd ? sd[0] : ''); }
     else if (st.status === 'working') { label = late ? `Tarde · ${R.hm(inM.ts)}` : `✓ ${R.hm(inM.ts)}`; if (late) cls = 's-late'; }
     else if (st.status === 'lunch') label = 'En almuerzo';
     else if (st.status === 'done') label = 'Salió ' + R.hm(st.today.out.ts);
@@ -207,7 +207,7 @@ function tick() {
   $('#ck').textContent = R.hm(now); $('#sc').textContent = R.hms(now).slice(6);
   $('#dt').textContent = new Intl.DateTimeFormat('es-EC', { timeZone: TZ_NAME, weekday: 'long', day: 'numeric', month: 'long' }).format(now);
   const b = $('#bn'), ex = R.extraDay(d, CTX), dw = R.dow(d);
-  if (ex && (dw === 0 || dw === 6 || CTX.holidays[d])) { b.className = 'banner extra'; b.textContent = `Jornada especial hoy: ${ex.from} a ${ex.to}`; }
+  if (ex && (dw === 0 || dw === 6 || CTX.holidays[d])) { b.className = 'banner extra'; b.textContent = `Jornada especial hoy: ${ex.from} a ${ex.to}` + (ex.who ? ' · ' + ex.who.map(id => (TEAM.find(x => x.id === id) || {}).name).filter(Boolean).join(', ') : ''); }
   else if (dw === 0 || dw === 6) { b.className = 'banner'; b.textContent = 'Hoy no es día laborable. ¡Descansa!'; }
   else if (min < R.toMin(CFG.START)) { const l = R.toMin(CFG.START) - min; b.className = 'banner ok'; b.textContent = l <= 10 ? `¡Faltan ${l} min! Sentado y listo a las ${CFG.START}` : `Faltan ${l} min para las ${CFG.START}`; }
   else if (min < 12 * 60) { const li = R.lateInfo(CFG.START, min); b.className = 'banner late'; b.textContent = li.fine ? `Ya pasaron las ${CFG.START} · registrar ahora = multa de $${li.fine}` : `Son las ${CFG.START} en punto. ¡Registra ya!`; }
@@ -306,7 +306,7 @@ function begin(action) {
   if (action === 'field') return fieldFlow();
   if (action === 'back') return backFlow();
   if (action !== 'out') return camera();
-  const end = (R.extraDay(today(), CTX) && !R.schedFor(e, today())) ? R.extraDay(today(), CTX).to : (R.schedFor(e, today()) || [0, CFG.END])[1];
+  const end = (R.extraDay(today(), CTX, e) && !R.schedFor(e, today())) ? R.extraDay(today(), CTX, e).to : (R.schedFor(e, today()) || [0, CFG.END])[1];
   if (!e.boss && R.minOfDay(T.now()) < R.toMin(end)) {
     return modal({ title: 'Todavía no es hora', text: `La salida es a las ${end}. No se puede salir antes sin autorización.`, pose: 'point',
       buttons: [{ label: 'Volver', cls: 'ghost', fn: home }, { label: 'Tengo autorización', cls: 'blue', fn: () => askPin({ id: 'boss', name: 'Administración', title: 'PIN de autorización', onOk: () => { f.early = true; checklist(); } }) }] });
@@ -424,8 +424,8 @@ async function send() {
   const f = S.flow, e = f.emp; $('#send').disabled = true; $('#cm').style.color = 'var(--g3)'; $('#cm').textContent = 'Guardando…';
   const ts = T.now(), date = R.ymd(ts), before = stats(e).medals;
   const m = { id: `${e.id}|${date}|${f.action}`, emp: e.id, date, type: f.action, ts, verified: T.verified(), photo: f.photo, synced: false, office: OFFICE };
-  const extra = R.extraDay(date, CTX) && !R.isWorkday(e, date, CTX);
-  if (f.action === 'in') { if (extra) m.extra = true; else if (e.boss || (e.nuevo && !S.marks.some(x => x.emp === e.id))) Object.assign(m, { late: false, lateMin: 0, fine: 0, pts: 0, bonus: 0, streak: 0, early: false, first: !e.boss }); else { const sc = R.scoreIn(e, S.marks, CTX, ts), og = (S.outs[date + '|' + e.id] || [])[0], sd = R.schedFor(e, date);
+  const xd = R.extraDay(date, CTX, e), extra = xd && !R.isWorkday(e, date, CTX);
+  if (f.action === 'in') { if (extra) { m.extra = true; if (!e.boss) { const li = R.lateInfo(xd.from, R.minOfDay(ts)); Object.assign(m, { late: li.late, lateMin: li.lateMin, fine: li.fine, pts: 0, bonus: 0, streak: 0, early: false }); } } else if (e.boss || (e.nuevo && !S.marks.some(x => x.emp === e.id))) Object.assign(m, { late: false, lateMin: 0, fine: 0, pts: 0, bonus: 0, streak: 0, early: false, first: !e.boss }); else { const sc = R.scoreIn(e, S.marks, CTX, ts), og = (S.outs[date + '|' + e.id] || [])[0], sd = R.schedFor(e, date);
       if (og && sd && sc.late && R.toMin(og.from) <= R.toMin(sd[0])) { const li = R.lateInfo(og.to, R.minOfDay(ts)); if (!li.late) Object.assign(m, R.scoreIn(e, S.marks, CTX, R.tsOf(date, sd[0])), { early: false }); else Object.assign(m, sc, li); } else Object.assign(m, sc); } }
   if (f.action === 'out') { m.clean = true; if (f.early) { m.early = true; m.authBy = 'Administración'; } if (f.isCloser) m.closer = true; if (extra) m.extra = true; }
   if (S.marks.some(x => x.id === m.id)) return home();
@@ -440,7 +440,8 @@ function result(m, before) {
   const e = S.flow.emp, st = stats(e), first = e.boss ? window.Daily.nick(m.date) : e.name, hm = R.hm(m.ts); let hero = '', pose = 'thumbs', extraHTML = '', eb = '', msg = '', late = false;
   if (m.type === 'in') {
     late = !!m.late;
-    if (m.extra) { eb = 'Jornada especial'; hero = stkWords('¡Gracias por venir,', '') + ' ' + stkWords(first + '!', 'g'); msg = 'Tu entrada de hoy cuenta como horas extra.'; pose = 'cheer'; }
+    if (m.extra && m.late) { const b = Math.ceil(m.lateMin / 60); late = true; eb = 'Jornada especial con retraso'; pose = 'think'; hero = stkWords('Llegaste a las ' + hm, ''); msg = `Multa de $${m.fine} (${b} ${b === 1 ? 'hora o fracción' : 'horas o fracción'} de retraso). Tu jornada cuenta como horas extra.`; }
+    else if (m.extra) { eb = 'Jornada especial'; hero = stkWords('¡Gracias por venir,', '') + ' ' + stkWords(first + '!', 'g'); msg = 'Llegaste a tiempo. Tu jornada de hoy cuenta como horas extra.'; pose = 'cheer'; }
     else if (m.first) { eb = 'Primer día'; hero = stkWords('¡Bienvenido/a,', '') + ' ' + stkWords(first + '!', 'g'); msg = 'Hoy es tu primer día: tu hora de entrada queda registrada y no lleva multa. Desde mañana empieza tu racha.'; pose = 'cheer'; }
     else if (late) { const b = Math.ceil(m.lateMin / 60); eb = 'Entrada con retraso'; pose = 'think'; hero = stkWords('Llegaste a las ' + hm, '');
       msg = `Multa de $${m.fine} (${b} ${b === 1 ? 'hora o fracción' : 'horas o fracción'} de retraso). ${DEMO ? 'Queda registrado con tu foto.' : 'Te llegará un correo con el detalle.'} Mañana empiezas una racha nueva.`; }
