@@ -50,7 +50,7 @@
     return true;
   }
   // Día extra (sábado, domingo o feriado) que el admin activó para todo el equipo
-  const extraDay = (date, ctx) => (ctx.extra && ctx.extra[date]) || null;
+  const extraDay = (date, ctx, emp) => { const x = (ctx.extra && ctx.extra[date]) || null; return x && (!emp || !x.who || x.who.indexOf(emp.id) >= 0) ? x : null; };
 
   const inMap = (emp, marks) => {
     const by = {};
@@ -141,7 +141,7 @@
     const td = {}; mine.forEach(m => { if (m.date === today) td[m.type] = m; });
     let status;
     if (!emp.boss && ctx.leaves && ctx.leaves[today + '|' + emp.id]) status = 'permit';
-    else if (!emp.boss && !isWorkday(emp, today, ctx) && !extraDay(today, ctx)) status = 'off';
+    else if (!emp.boss && !isWorkday(emp, today, ctx) && !extraDay(today, ctx, emp)) status = 'off';
     else if (td.out) status = 'done';
     else if (td.lunch_out && !td.lunch_in) status = 'lunch';
     else if (td.in) status = 'working';
