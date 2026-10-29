@@ -128,7 +128,7 @@ const hatSVG = '<svg class="hat" viewBox="0 0 34 38"><path d="M17 2 L4 34 H30 Z"
 let idleT = null;
 function bump() {
   clearTimeout(idleT);
-  if (['s-pin', 's-act', 's-check', 's-cam'].includes(S.screen)) idleT = setTimeout(() => { stopCam(); S.flow = null; home(); }, 90000);
+  if (['s-pin', 's-act', 's-check', 's-cam', 's-rank'].includes(S.screen)) idleT = setTimeout(() => { stopCam(); S.flow = null; home(); }, 90000);
 }
 document.addEventListener('pointerdown', bump);
 document.addEventListener('contextmenu', e => e.preventDefault());
@@ -191,12 +191,14 @@ function home() {
     </div>
     <div class="col col-r">
       <div class="panel top3"><h3>Top de la semana</h3>${top.length ? `<ol>${top.map((x, i) => `<li><span>${i + 1}. ${esc(x.e.name)}</span><span>${x.st.weekPts} pts</span></li>`).join('')}</ol>` : '<div class="empty">Aún sin puntos esta semana</div>'}</div>
+      <button class="btn blue" id="rkbtn" type="button">Mi rango y premios</button>
       <div class="panel goal"><h3>Pizza Day del equipo</h3><div class="bar"><i class="${pct >= CFG.TEAM_GOAL * 100 ? '' : 'low'}" style="width:${tp.total ? pct : 0}%"></i><u style="left:${CFG.TEAM_GOAL * 100}%"></u><em class="gm" style="left:${CFG.TEAM_GOAL * 100}%">Meta ${CFG.TEAM_GOAL * 100}% 🍕</em></div>
         <p>${tp.total ? `El equipo va <b>${pct}%</b> de puntualidad este mes (${tp.ok} de ${tp.total} llegadas a tiempo). Meta: ${CFG.TEAM_GOAL * 100}% 🍕` : 'Empieza el mes: ¡a llegar a tiempo todos!'}</p></div>
       ${bd.length ? `<div class="panel"><h3>Cumpleaños de la semana</h3>${bd.map(e => `<div class="bday">${esc(e.name)} · ${e.bday.split('-').reverse().join('/')}</div>`).join('')}</div>` : ''}
       <img class="jaycol" src="assets/jay-wave.webp" alt="">
     </div>
   </div>`;
+  $('#rkbtn').onclick = rankScreen;
   document.querySelectorAll('.tile').forEach(b => b.onclick = () => tapPerson(TEAM.find(x => x.id === b.dataset.id)));
   go('s-home'); tick();
 }
@@ -251,6 +253,23 @@ function bossScreen() {
     <p>Que tengas una excelente jornada.</p></div>${quoteHTML()}<div class="actions"><button class="btn" id="done">Gracias, Jay</button></div></div>
     <img class="jay" src="assets/jay-open.webp" alt=""></div>`;
   $('#done').onclick = home; go('s-res'); autoHome();
+}
+
+/* ---------------- Rangos y premios del mes ---------------- */
+function rankScreen() {
+  const rows = TEAM.filter(e => !e.boss).map(e => ({ e, st: stats(e) })).sort((a, b) => b.st.rank.index - a.st.rank.index || b.st.monthPts - a.st.monthPts);
+  const ladder = CFG.RANKS.map(r => `<div class="rk" style="margin-bottom:6px"><span>${esc(r.n)}</span><span>${r.prize ? esc(r.prize) : 'Sin premio todavía'}</span></div>`).join('');
+  const list = rows.map(({ e, st }) => { const rk = st.rank;
+    return `<div class="panel" style="margin-bottom:10px"><div class="rk"><span>${esc(e.name)} · ${esc(rk.name)}</span><span>${st.monthPts} pts este mes</span></div>
+      <div class="bar2"><i style="width:${Math.round(rk.progress * 100)}%"></i></div>
+      <p style="margin:8px 0 0;font-size:14px;font-weight:600;color:var(--g3)">${rk.prize ? 'Ya ganaste: ' + esc(rk.prize) + '. ' : ''}${rk.next ? `Te faltan <b>${rk.next.need} pts</b> para ${esc(rk.next.name)}${rk.next.prize ? ' · premio: ' + esc(rk.next.prize) : ''}` : '¡Rango máximo!'}</p></div>`; }).join('');
+  $('#s-rank').innerHTML = `<div class="top"><div class="logo"><img src="assets/logo.png" alt=""></div><span class="office">${OFFICE}</span></div>
+    <div style="max-width:760px;width:100%;margin:0 auto;padding:8px 20px 28px">
+      <h2 class="h2">Rangos y <em>premios</em> del mes</h2>
+      <div class="panel" style="margin-bottom:14px"><h3>Premios por rango</h3>${ladder}<p style="margin:6px 0 0;font-size:13px;color:var(--g3);font-weight:600">Los puntos se ganan llegando a tiempo, antes de hora y con racha. El rango se reinicia cada mes.</p></div>
+      ${list}
+      <div style="text-align:center"><button class="btn ghost" id="rkback" type="button">Volver</button></div></div>`;
+  $('#rkback').onclick = home; go('s-rank');
 }
 
 /* ---------------- PIN ---------------- */
