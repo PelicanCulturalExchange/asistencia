@@ -64,7 +64,7 @@ const dbAll = () => new Promise(res => { const q = store('readonly').getAll(); q
 const dbPut = m => new Promise((res, rej) => { const q = store('readwrite').put(m); q.onsuccess = () => res(); q.onerror = () => rej(q.error); });
 const dbPutMany = list => new Promise((res, rej) => { const t = db.transaction('marks', 'readwrite'); list.forEach(m => t.objectStore('marks').put(m)); t.oncomplete = res; t.onerror = () => rej(t.error); });
 
-const S = { marks: [], flow: null, quotes: null, jar: null, outs: {} };
+const S = { marks: [], flow: null, quotes: null, jar: null, outs: {}, premios: [] };
 const hhmm = min => R.pad(Math.floor(min / 60)) + ':' + R.pad(min % 60);
 
 /* ---------------- Datos de demostración ---------------- */
@@ -171,7 +171,7 @@ function home() {
     else if (st.status === 'off') label = 'Libre hoy';
     else if (st.status === 'permit') label = 'Permiso';
     const og = (S.outs[d + '|' + e.id] || [])[0]; if (og && (st.status === 'working' || st.status === 'lunch')) label = og.back ? label : `Fuera de base ${og.from}`;
-    return `<button class="tile ${cls}" data-id="${e.id}">${st.streak > 0 ? `<span class="fl"><svg><use href="#i-flame"/></svg>${st.streak}</span>` : ''}
+    return `<button class="tile ${cls}" data-id="${e.id}">${st.streak > 0 ? `<span class="fl"><svg><use href="#i-flame"/></svg>${st.streak}</span>` : ''}${comodinOf(e) ? `<span class="fl" style="left:10px;right:auto" title="Comodín">${coinSVG}</span>` : ''}
       <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${avImg(e)}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
   }).join('');
   $('#s-home').innerHTML = `
@@ -255,6 +255,32 @@ function bossScreen() {
   $('#done').onclick = home; go('s-res'); autoHome();
 }
 
+const comodinOf = e => (S.premios || []).find(p => p.emp === e.id && p.tipo === 'comodin' && p.est === 'disponible' && (!p.vence || p.vence >= today())) || null;
+const premioOf = e => (S.premios || []).filter(p => p.emp === e.id && p.tipo !== 'comodin' && (p.est === 'ganado' || p.est === 'reclamado'))[0] || null;
+const coinSVG = '<svg viewBox="0 0 24 24" width="20" height="20" style="vertical-align:-4px"><circle cx="12" cy="12" r="10" fill="#E8C766"/><circle cx="12" cy="12" r="7.2" fill="none" stroke="#B8923A" stroke-width="1.6"/><path d="M12 7.5v9M9.6 10c0-1 1-1.6 2.4-1.6s2.4.6 2.4 1.6-1 1.4-2.4 1.7-2.4.7-2.4 1.8 1 1.6 2.4 1.6 2.4-.6 2.4-1.6" fill="none" stroke="#8A6A22" stroke-width="1.3" stroke-linecap="round"/></svg>';
+function claimPremio(p, e) {
+  askPin({ id: e.id, name: e.name, title: 'Confirma con tu PIN para reclamar', onOk: async () => {
+    try {
+      if (!DEMO) { if (!navigator.onLine) throw new Error('offline'); const r = await api({ action: 'premio_reclamar', t: localStorage.getItem('pel_dev') || '', p: { id: p.id, emp: e.id } }); if (!r.ok) throw new Error(r.error); }
+      p.est = 'reclamado'; modal({ title: '¡Premio reclamado!', text: 'Administración te va a contactar para entregártelo.', pose: 'cheer', buttons: [{ label: 'Listo', cls: 'blue', fn: rankScreen }] });
+    } catch (x) { modal({ title: 'No se pudo reclamar', text: 'Necesitas internet. Inténtalo otra vez en unos minutos.', pose: 'think', buttons: [{ label: 'Entendido', cls: 'ghost', fn: rankScreen }] }); }
+  } });
+}
+async function useComodin(m, com) {
+  const b = $('#usecom'); b.disabled = true; b.textContent = 'Aplicando…';
+  try {
+    if (!DEMO) {
+      await syncOutbox(); if (!m.synced) throw new Error('sync');
+      const r = await api({ action: 'comodin_usar', t: localStorage.getItem('pel_dev') || '', p: { id: com.id, emp: m.emp, date: m.date } }); if (!r.ok) throw new Error(r.error);
+    }
+    const fine = m.fine; m.fine = 0; m.comodin = true; await dbPut(m); com.est = 'usado'; if (S.jar != null && m.synced) S.jar = Math.max(0, S.jar - fine);
+    modal({ title: 'Comodín usado', text: `Tu multa de $${fine} fue perdonada. Administración recibió el aviso.`, pose: 'cheer', buttons: [{ label: 'Listo', cls: 'blue', fn: home }] });
+  } catch (x) {
+    b.disabled = false; b.textContent = 'Usar mi comodín';
+    modal({ title: 'No se pudo aplicar', text: 'Necesitas internet y que tu entrada ya esté guardada. Espera unos segundos e inténtalo de nuevo.', pose: 'think', buttons: [{ label: 'Entendido', cls: 'ghost', fn: () => go('s-res') }] });
+  }
+}
+
 /* ---------------- Rangos y premios del mes ---------------- */
 function rankScreen() {
   const rows = TEAM.filter(e => !e.boss).map(e => ({ e, st: stats(e) })).sort((a, b) => b.st.rank.index - a.st.rank.index || b.st.monthPts - a.st.monthPts);
@@ -262,13 +288,16 @@ function rankScreen() {
   const list = rows.map(({ e, st }) => { const rk = st.rank;
     return `<div class="panel" style="margin-bottom:10px"><div class="rk"><span>${esc(e.name)} · ${esc(rk.name)}</span><span>${st.monthPts} pts este mes</span></div>
       <div class="bar2"><i style="width:${Math.round(rk.progress * 100)}%"></i></div>
-      <p style="margin:8px 0 0;font-size:14px;font-weight:600;color:var(--g3)">${rk.prize ? 'Ya ganaste: ' + esc(rk.prize) + '. ' : ''}${rk.next ? `Te faltan <b>${rk.next.need} pts</b> para ${esc(rk.next.name)}${rk.next.prize ? ' · premio: ' + esc(rk.next.prize) : ''}` : '¡Rango máximo!'}</p></div>`; }).join('');
+      <p style="margin:8px 0 0;font-size:14px;font-weight:600;color:var(--g3)">${rk.next ? `Te faltan <b>${rk.next.need} pts</b> para ${esc(rk.next.name)}${rk.next.prize ? ' · premio: ' + esc(rk.next.prize) : ''}` : '¡Rango máximo!'}</p>
+      ${comodinOf(e) ? `<p style="margin:8px 0 0;font-weight:800;color:#E8C766">${coinSVG} Tienes un comodín: úsalo cuando llegues tarde</p>` : ''}
+      ${(() => { const p = premioOf(e); return p ? (p.est === 'ganado' ? `<div style="margin-top:10px"><b>Ganaste: ${esc(p.premio)}</b> (${esc(p.mes)}) · reclámalo antes del ${esc(p.vence)}<br><button class="btn blue" data-claim="${esc(e.id)}" type="button" style="margin-top:8px">Reclamar mi premio</button></div>` : `<p style="margin:10px 0 0;font-weight:800;color:var(--g1)">Premio reclamado: ${esc(p.premio)} · pendiente de entrega</p>`) : ''; })()}</div>`; }).join('');
   $('#s-rank').innerHTML = `<div class="top"><div class="logo"><img src="assets/logo.png" alt=""></div><span class="office">${OFFICE}</span></div>
     <div style="max-width:760px;width:100%;margin:0 auto;padding:8px 20px 28px">
       <h2 class="h2">Rangos y <em>premios</em> del mes</h2>
       <div class="panel" style="margin-bottom:14px"><h3>Premios por rango</h3>${ladder}<p style="margin:6px 0 0;font-size:13px;color:var(--g3);font-weight:600">Los puntos se ganan llegando a tiempo, antes de hora y con racha. El rango se reinicia cada mes.</p></div>
       ${list}
       <div style="text-align:center"><button class="btn ghost" id="rkback" type="button">Volver</button></div></div>`;
+  document.querySelectorAll('[data-claim]').forEach(b => b.onclick = () => { const e = TEAM.find(x => x.id === b.dataset.claim); claimPremio(premioOf(e), e); });
   $('#rkback').onclick = home; go('s-rank');
 }
 
@@ -456,7 +485,7 @@ async function send() {
 /* ---------------- Resultados ---------------- */
 function statCards(items) { return `<div class="stats">${items.map(([v, l, ic]) => `<div class="stat"><b>${ic ? `<svg><use href="#${ic}"/></svg>` : ''}${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>`; }
 function result(m, before) {
-  const e = S.flow.emp, st = stats(e), first = e.boss ? window.Daily.nick(m.date) : e.name, hm = R.hm(m.ts); let hero = '', pose = 'thumbs', extraHTML = '', eb = '', msg = '', late = false;
+  const e = S.flow.emp, st = stats(e), first = e.boss ? window.Daily.nick(m.date) : e.name, hm = R.hm(m.ts); let hero = '', pose = 'thumbs', extraHTML = '', eb = '', msg = '', late = false, com = null;
   if (m.type === 'in') {
     late = !!m.late;
     if (m.extra && m.late) { const b = Math.ceil(m.lateMin / 60); late = true; eb = 'Jornada especial con retraso'; pose = 'think'; hero = stkWords('Llegaste a las ' + hm, ''); msg = `Multa de $${m.fine} (${b} ${b === 1 ? 'hora o fracción' : 'horas o fracción'} de retraso). Tu jornada cuenta como horas extra.`; }
@@ -467,6 +496,7 @@ function result(m, before) {
     else { eb = 'Entrada registrada'; hero = stkWords('¡Llegaste a tiempo,', '') + ' ' + stkWords(first + '!', 'g');
       msg = st.streak >= 2 ? `Llevas ${st.streak} días seguidos llegando a tiempo. Buen trabajo.` : 'Entrada registrada. ¡Vamos por la racha!'; }
     const newM = st.medals.filter(k => !before.includes(k)); if (newM.length) pose = 'cheer';
+    com = late && !m.extra && !m.first && !e.boss && m.fine > 0 ? comodinOf(e) : null;
     const rk = st.rank, fl = [];
     extraHTML = quoteHTML() + (m.extra || e.boss || m.first ? '' : `${statCards([[String(st.streak), 'Racha (días)', 'i-flame'], ['+' + m.pts, 'Puntos de hoy'], [String(st.monthPts), 'Puntos del mes']])}
       <div class="panel"><div class="rk"><span>${esc(rk.name)}${rk.prize ? ` · ${esc(rk.prize)}` : ''}</span><span>${rk.next ? `${rk.next.need} pts para ${esc(rk.next.name)}` : '¡Rango máximo!'}</span></div><div class="bar2"><i id="bar"></i></div></div>
@@ -485,10 +515,12 @@ function result(m, before) {
     msg = m.closer ? 'Gracias por cerrar la oficina esta semana.' : 'Gracias por dejar la oficina lista.';
     extraHTML = statCards([[R.hm(inM.ts), 'Entrada'], [mins ? mins + ' min' : '—', 'Almuerzo'], [hm, 'Salida']]) + `<div class="panel"><h3>Hoy trabajaste</h3><div class="amt" style="font-size:30px;font-weight:800;color:var(--g1)">${fmtMin(worked)}</div></div>`;
   }
+  const comHTML = com ? `<div class="panel" style="border:1px solid #E8C766"><h3>${coinSVG} Tienes un comodín</h3><p style="margin:4px 0 10px;font-weight:600">Hoy llegaste tarde (multa de $${m.fine}). ¿Quieres usar tu comodín para perdonarla?</p><button class="btn blue" id="usecom" type="button">Usar mi comodín</button></div>` : '';
   const offline = !m.verified ? '<p class="empty" style="margin-top:8px">Hora no verificada por internet. Se confirma sola al volver la conexión.</p>' : '';
-  $('#s-res').innerHTML = `<div class="res"><div class="main"><div class="hero ${late ? 'late' : ''}"><div class="eb">${eb} · ${hm}</div><div class="stk-wrap">${hero}</div><p>${esc(msg)}</p>${offline}</div>${extraHTML}
+  $('#s-res').innerHTML = `<div class="res"><div class="main"><div class="hero ${late ? 'late' : ''}"><div class="eb">${eb} · ${hm}</div><div class="stk-wrap">${hero}</div><p>${esc(msg)}</p>${offline}</div>${comHTML}${extraHTML}
     <div class="actions"><button class="btn ghost" id="done">Listo</button></div></div><img class="jay" src="assets/jay-${pose}.webp" alt=""></div>`;
   $('#done').onclick = home; go('s-res');
+  if (com) $('#usecom').onclick = () => useComodin(m, com);
   if (S.barPct != null && $('#bar')) { const p = S.barPct; setTimeout(() => { $('#bar').style.width = p + '%'; }, 80); }
   if (m.type === 'in' && !late && !m.extra && (stats(e).medals.length > before.length || pose === 'cheer')) confetti(); else if (m.type === 'in' && !late) confetti();
   S.barPct = null; autoHome();
@@ -528,7 +560,7 @@ async function enrollIfNeeded() {
 function applyBoot(b) {
   TEAM = b.team; CTX = b.ctx; S.quotes = b.quotes && b.quotes.length ? b.quotes : null; S.jar = b.jar || 0; OFFICE = 'Oficina ' + b.office;
   if (b.now) T.setOffset(b.now - Date.now());
-  TEAM.forEach(e => PINS[e.id] = e.pin); S.outs = b.outs || {};
+  TEAM.forEach(e => PINS[e.id] = e.pin); S.outs = b.outs || {}; S.premios = b.premios || [];
   const local = S.marks.filter(m => !m.synced), ids = {}; local.forEach(m => ids[m.id] = 1);
   S.marks = b.marks.filter(m => !ids[m.id]).concat(local);
 }
@@ -552,6 +584,7 @@ async function loadBoot() {
     await initPins();
     if (!marks.length) { const d = today(); marks = seedHistory(d); if (qs.get('demo') === 'day') marks = marks.concat(seedToday(d, marks)); await dbPutMany(marks); }
     S.marks = marks;
+    if (qs.has('prem')) { const a = TEAM.filter(x => !x.boss); S.premios = [{ id: a[0].id + '|2026-10', emp: a[0].id, mes: '2026-10', rango: 'Planeador', premio: 'Vale de café o snack', tipo: 'vale', est: 'ganado', vence: '2026-12-30' }, { id: a[1].id + '|2026-10', emp: a[1].id, mes: '2026-10', rango: 'Pelícano', premio: 'Comodín: perdona una multa', tipo: 'comodin', est: 'disponible', vence: '2026-12-30' }]; }
   } else { S.marks = marks; await loadBoot(); }
   home();
   setInterval(tick, 1000); setInterval(() => { if (S.screen === 's-home') home(); }, 60000); setInterval(syncOutbox, 30000);

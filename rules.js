@@ -13,11 +13,11 @@
     // Rangos por porcentaje de los puntos posibles del mes (así medio tiempo compite justo)
     RANKS: [
       { n: 'Polluelo', p: 0 },
-      { n: 'Aleteo', p: 0.165 },
-      { n: 'Planeador', p: 0.413, prize: 'Vale de café o snack' },
-      { n: 'Pelícano', p: 0.661, prize: 'Comodín: perdona una multa' },
-      { n: 'Pelícano Neón', p: 0.826, prize: 'Salir una hora más temprano' },
-      { n: 'Mega Pelícano', p: 0.959, prize: 'Medio día de home office' }
+      { n: 'Aleteo', p: 0.35 },
+      { n: 'Planeador', p: 0.60, prize: 'Vale de café o snack' },
+      { n: 'Pelícano', p: 0.70, prize: 'Comodín: perdona una multa' },
+      { n: 'Pelícano Neón', p: 0.85, prize: 'Salir una hora más temprano' },
+      { n: 'Mega Pelícano', p: 0.95, prize: 'Medio día de home office' }
     ],
     TEAM_GOAL: 0.9,               // meta de puntualidad del equipo (Pizza Day)
     CHECKLIST: ['Cafetera', 'Platos secos y guardados', 'Luces apagadas', 'Escritorios ordenados', 'Computadoras apagadas']
