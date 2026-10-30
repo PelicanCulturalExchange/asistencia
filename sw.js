@@ -1,5 +1,5 @@
 /* Service worker: la app abre y funciona aunque se vaya el internet. */
-const V = 'pelican-asistencia-v14';
+const V = 'pelican-asistencia-v15';
 const SHELL = ['./', 'index.html', 'styles.css', 'config.js', 'rules.js','quotes.js', 'daily.js', 'app.js', 'manifest.webmanifest',
   'fonts/poppins-latin-400-normal.woff2', 'fonts/poppins-latin-500-normal.woff2', 'fonts/poppins-latin-600-normal.woff2',
   'fonts/poppins-latin-700-normal.woff2', 'fonts/poppins-latin-800-normal.woff2', 'fonts/poppins-latin-800-italic.woff2', 'fonts/anton-latin-400-normal.woff2',

@@ -157,7 +157,7 @@ function weekBirthdays() {
 function home() {
   S.flow = null;
   const d = today(), team = TEAM.map(e => ({ e, st: stats(e) }));
-  const pend = S.marks.filter(m => m.fine > 0 && !m.paid && (S.jar === null || !m.synced)).reduce((s, m) => s + m.fine, 0), jar = (S.jar || 0) + pend;
+  const pend = S.marks.filter(m => m.fine > 0 && !m.paid && (S.jar === null || !m.synced)).reduce((s, m) => s + m.fine, 0), jar = DEMO ? pend : (S.jar || 0), por = DEMO ? 0 : (S.porCobrar || 0) + S.marks.filter(m => m.fine > 0 && !m.paid && !m.synced).reduce((s, m) => s + m.fine, 0);
   const top = team.filter(x => !x.e.boss && x.st.weekPts > 0).sort((a, b) => b.st.weekPts - a.st.weekPts).slice(0, 3);
   const tp = R.teamPunctuality(TEAM, S.marks, d.slice(0, 7)), pct = Math.round(tp.pct * 100);
   const bd = weekBirthdays(), bdIds = bd.map(e => e.id);
@@ -182,7 +182,7 @@ function home() {
       <div class="banner" id="bn"></div>
       ${R.dow(d) === 5 ? '<div class="banner fri">Hoy es viernes de almuerzo con el Team</div>' : ''}
       ${quoteHTML()}
-      <div class="panel jar">${jarSVG(jar)}<div><h3 style="margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--g1)">Tarro de multas</h3><div class="amt">$${jar}</div><div class="lbl">Lo que llevamos juntos</div></div></div>
+      <div class="panel jar">${jarSVG(jar)}<div><h3 style="margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--g1)">Tarro de multas</h3><div class="amt">$${jar}</div><div class="lbl">Lo que llevamos juntos</div>${por > 0 ? `<div class="lbl" style="margin-top:4px">Por cobrar: $${por}</div>` : ''}</div></div>
     </div>
     <div class="mid">
       <h2 class="h2">¿Quién <em>llegó</em>? Toca tu nombre</h2>
@@ -273,7 +273,7 @@ async function useComodin(m, com) {
       await syncOutbox(); if (!m.synced) throw new Error('sync');
       const r = await api({ action: 'comodin_usar', t: localStorage.getItem('pel_dev') || '', p: { id: com.id, emp: m.emp, date: m.date } }); if (!r.ok) throw new Error(r.error);
     }
-    const fine = m.fine; m.fine = 0; m.comodin = true; await dbPut(m); com.est = 'usado'; if (S.jar != null && m.synced) S.jar = Math.max(0, S.jar - fine);
+    const fine = m.fine; m.fine = 0; m.comodin = true; await dbPut(m); com.est = 'usado'; if (m.synced) S.porCobrar = Math.max(0, (S.porCobrar || 0) - fine);
     modal({ title: 'Comodín usado', text: `Tu multa de $${fine} fue perdonada. Administración recibió el aviso.`, pose: 'cheer', buttons: [{ label: 'Listo', cls: 'blue', fn: home }] });
   } catch (x) {
     b.disabled = false; b.textContent = 'Usar mi comodín';
@@ -558,7 +558,7 @@ async function enrollIfNeeded() {
   } catch (e) { alert('No pude enlazar la tablet. Revisa la conexión a internet.'); }
 }
 function applyBoot(b) {
-  TEAM = b.team; CTX = b.ctx; S.quotes = b.quotes && b.quotes.length ? b.quotes : null; S.jar = b.jar || 0; OFFICE = 'Oficina ' + b.office;
+  TEAM = b.team; CTX = b.ctx; S.quotes = b.quotes && b.quotes.length ? b.quotes : null; S.jar = b.jar || 0; S.porCobrar = b.porCobrar || 0; OFFICE = 'Oficina ' + b.office;
   if (b.now) T.setOffset(b.now - Date.now());
   TEAM.forEach(e => PINS[e.id] = e.pin); S.outs = b.outs || {}; S.premios = b.premios || [];
   const local = S.marks.filter(m => !m.synced), ids = {}; local.forEach(m => ids[m.id] = 1);
