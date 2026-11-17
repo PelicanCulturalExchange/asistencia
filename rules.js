@@ -19,6 +19,12 @@
       { n: 'Pelícano Neón', p: 0.85, prize: 'Salir una hora más temprano' },
       { n: 'Mega Pelícano', p: 0.95, prize: 'Medio día de home office' }
     ],
+    // Horarios especiales aprobados por fecha ('persona|AAAA-MM-DD': [entrada, salida]); mandan sobre el horario semanal
+    SPECIAL: {
+      'e2|2026-11-25': ['08:00', '16:45'], 'e2|2026-11-26': ['08:00', '16:45'],
+      'e2|2026-11-30': ['08:00', '16:45'], 'e2|2026-12-01': ['08:00', '16:45'], 'e2|2026-12-02': ['08:00', '16:45'],
+      'e2|2026-12-03': ['08:00', '16:45'], 'e2|2026-12-04': ['08:00', '16:45']
+    },
     TEAM_GOAL: 0.9,               // meta de puntualidad del equipo (Pizza Day)
     CHECKLIST: ['Cafetera', 'Platos secos y guardados', 'Luces apagadas', 'Escritorios ordenados', 'Computadoras apagadas']
   };
@@ -42,7 +48,7 @@
     return { late: l > 0, lateMin: l, fine: l ? Math.ceil(l / 60) * CFG.FINE : 0 };
   }
 
-  const schedFor = (emp, date) => (emp.sched && emp.sched[dow(date)]) || null;
+  const schedFor = (emp, date) => CFG.SPECIAL[emp.id + '|' + date] || (emp.sched && emp.sched[dow(date)]) || null;
   function isWorkday(emp, date, ctx) {
     if (emp.boss || !schedFor(emp, date)) return false;
     if (ctx.holidays && ctx.holidays[date]) return false;
