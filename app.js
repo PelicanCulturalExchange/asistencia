@@ -182,7 +182,7 @@ function home() {
       <div class="banner" id="bn"></div>
       ${R.dow(d) === 5 ? '<div class="banner fri">Hoy es viernes de almuerzo con el Team</div>' : ''}
       ${quoteHTML()}
-      <div class="panel jar">${jarSVG(jar)}<div><h3 style="margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--g1)">Tarro de multas</h3><div class="amt">$${jar}</div><div class="lbl">Lo que llevamos juntos</div>${por > 0 ? `<div class="lbl" style="margin-top:4px">Por cobrar: $${por}</div>` : ''}</div></div>
+      <div class="panel jar">${jarSVG(jar)}<div><h3 style="margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--g1)">Tarro de multas</h3><div class="amt">$${jar}</div><div class="lbl">En el tarro (ya cobrado)</div>${por > 0 ? `<div class="lbl" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line,rgba(0,0,0,.12));font-size:15px;font-weight:800;color:var(--g2,var(--g1))">Falta por cobrar: $${por}</div>` : ''}</div></div>
     </div>
     <div class="mid">
       <h2 class="h2">¿Quién <em>llegó</em>? Toca tu nombre</h2>
