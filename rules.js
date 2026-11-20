@@ -57,6 +57,8 @@
   }
   // Día extra (sábado, domingo o feriado) que el admin activó para todo el equipo
   const extraDay = (date, ctx, emp) => { const x = (ctx.extra && ctx.extra[date]) || null; return x && (!emp || !x.who || x.who.indexOf(emp.id) >= 0) ? x : null; };
+  // Feriado en que venir es opcional: sin atrasos ni multas, cada quien entra y sale cuando quiere, y las horas cuentan como extra
+  const holidayOpen = (date, ctx, emp) => !!(emp && !emp.boss && ctx.holidays && ctx.holidays[date] && schedFor(emp, date) && !extraDay(date, ctx, emp));
 
   const inMap = (emp, marks) => {
     const by = {};
@@ -147,7 +149,7 @@
     const td = {}; mine.forEach(m => { if (m.date === today) td[m.type] = m; });
     let status;
     if (!emp.boss && ctx.leaves && ctx.leaves[today + '|' + emp.id]) status = 'permit';
-    else if (!emp.boss && !isWorkday(emp, today, ctx) && !extraDay(today, ctx, emp)) status = 'off';
+    else if (!emp.boss && !isWorkday(emp, today, ctx) && !extraDay(today, ctx, emp) && !holidayOpen(today, ctx, emp)) status = 'off';
     else if (td.out) status = 'done';
     else if (td.lunch_out && !td.lunch_in) status = 'lunch';
     else if (td.in) status = 'working';
@@ -172,7 +174,7 @@
 
   function lunchMinutes(td) { return td.lunch_out && td.lunch_in ? Math.round((td.lunch_in.ts - td.lunch_out.ts) / 60000) : null; }
 
-  const api = { CFG, pad, toMin, ymd, hm, hms, minOfDay, tsOf, addDays, dow, weekStart, dayNum, lateInfo, schedFor, isWorkday, extraDay,
+  const api = { CFG, pad, toMin, ymd, hm, hms, minOfDay, tsOf, addDays, dow, weekStart, dayNum, lateInfo, schedFor, isWorkday, extraDay, holidayOpen,
     scoreIn, streakThrough, rankFor, statsFor, teamPunctuality, closerOfWeek, lunchMinutes, inMap };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Rules = api;
 })(typeof window !== 'undefined' ? window : globalThis);
