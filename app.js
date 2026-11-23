@@ -228,8 +228,10 @@ function home() {
   go('s-home'); tick();
 }
 
+let NEED_RELOAD = false;
 function tick() {
   if (S.screen !== 's-home') return;
+  if (NEED_RELOAD && !$('#modal').classList.contains('on') && !DEMO) { location.reload(); return; }
   const now = T.now(), d = today(), min = R.minOfDay(now);
   $('#ck').textContent = R.hm(now); $('#sc').textContent = R.hms(now).slice(6);
   $('#dt').textContent = new Intl.DateTimeFormat('es-EC', { timeZone: TZ_NAME, weekday: 'long', day: 'numeric', month: 'long' }).format(now);
@@ -628,7 +630,12 @@ async function loadBoot() {
   keepOn(); document.addEventListener('visibilitychange', keepOn); document.addEventListener('pointerup', keepOn, { passive: true });
   if ((navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) document.documentElement.classList.add('lite');
   addEventListener('online', () => { renderNet(); syncOutbox(); loadBoot(); }); addEventListener('offline', renderNet);
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    /* La tablet queda abierta todo el día: busca versión nueva cada 10 min y se recarga sola cuando está libre en el inicio. */
+    let hadCtl = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtl) NEED_RELOAD = true; hadCtl = true; });
+    navigator.serviceWorker.register('sw.js').then(reg => { setInterval(() => reg.update().catch(() => {}), 10 * 60000); }).catch(() => {});
+  }
   window.__pelican = { S, R, T, get TEAM() { return TEAM; } };
 })();
 })();
