@@ -125,6 +125,31 @@ const quoteHTML = () => { const [t, a] = quoteOfDay(); return `<div class="quote
 const fmtMin = m => (m >= 60 ? Math.floor(m / 60) + ' h ' : '') + (m % 60) + ' min';
 const hatSVG = '<svg class="hat" viewBox="0 0 34 38"><path d="M17 2 L4 34 H30 Z" fill="#6FB7DA" stroke="#14222A" stroke-width="2" stroke-linejoin="round"/><path d="M11 20 L23 16 M8 28 L26 23" stroke="#F5F8F7" stroke-width="3"/><circle cx="17" cy="3" r="4" fill="#8DD3A2" stroke="#14222A" stroke-width="2"/></svg>';
 
+const BDAY_PHRASES = [
+  'Que este nuevo año de vida te traiga más viajes, más historias y más sueños cumplidos.',
+  'Hoy el equipo entero celebra que existes. ¡Disfruta tu día!',
+  'Un año más de vida es un año más de aventuras. ¡A brillar!',
+  'Que todo lo que sueñas encuentre su camino este año. ¡Feliz vuelta al sol!',
+  'Gracias por ser parte de Pelican. Hoy te toca a ti recibir todo el cariño.',
+  'Que este año te lleve tan lejos como tú quieras volar.',
+  'Hoy no hay pendiente que te quite la sonrisa. ¡Feliz cumple!',
+  'Los mejores viajes empiezan con un año nuevo de vida. ¡A disfrutarlo!',
+  'Cada año suma una historia nueva. ¡Que la de este año sea inolvidable!',
+  'Eres parte de lo que hace especial a este equipo. ¡Felicidades!'
+];
+const isBday = (e, date) => !!(e && e.bday && e.bday === String(date).slice(5));
+const bdayCard = date => `<div class="quote bdcard"><div class="eb">🎂 ¡Feliz cumpleaños!</div><p>“${esc(BDAY_PHRASES[R.dayNum(date) % BDAY_PHRASES.length])}”</p><cite>— Tu equipo Pelican</cite></div>`;
+function garlandHTML() {
+  const L = 'FELICIDADES'.split(''), W = 440, y0 = -8, sag = 34, cols = ['#6FB7DA', '#8DD3A2', '#E8C766'];
+  const bz = (t, a, b, c) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * b + t * t * c;
+  const flags = L.map((ch, i) => {
+    const t = .05 + i * (.9 / (L.length - 1)), x = bz(t, 0, W / 2, W), y = bz(t, y0, y0 + sag * 2, y0);
+    const dx = 2 * (1 - t) * (W / 2) + 2 * t * (W / 2), dy = 2 * (1 - t) * (sag * 2) + 2 * t * (-sag * 2), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(1)})"><g class="gsw" style="animation-delay:${(i * -.35).toFixed(2)}s"><path d="M-16.5 0H16.5V36L0 47L-16.5 36Z" fill="${cols[i % 3]}" stroke="#14222A" stroke-width="2" stroke-linejoin="round"/><circle cx="0" cy="6" r="2" fill="#14222A"/><text x="0" y="31" text-anchor="middle" font-family="Anton,Impact,sans-serif" font-size="23" fill="#14222A">${ch}</text></g></g>`;
+  }).join('');
+  return `<svg class="garland" viewBox="0 -14 ${W} 100" aria-hidden="true"><path d="M0 ${y0}Q${W / 2} ${y0 + sag * 2} ${W} ${y0}" fill="none" stroke="#F5F8F7" stroke-opacity=".75" stroke-width="2.5"/>${flags}</svg>`;
+}
+
 let idleT = null;
 function bump() {
   clearTimeout(idleT);
@@ -160,7 +185,7 @@ function home() {
   const pend = S.marks.filter(m => m.fine > 0 && !m.paid && (S.jar === null || !m.synced)).reduce((s, m) => s + m.fine, 0), jar = DEMO ? pend : (S.jar || 0), por = DEMO ? 0 : (S.porCobrar || 0) + S.marks.filter(m => m.fine > 0 && !m.paid && !m.synced).reduce((s, m) => s + m.fine, 0);
   const top = team.filter(x => !x.e.boss && x.st.weekPts > 0).sort((a, b) => b.st.weekPts - a.st.weekPts).slice(0, 3);
   const tp = R.teamPunctuality(TEAM, S.marks, d.slice(0, 7)), pct = Math.round(tp.pct * 100);
-  const bd = weekBirthdays(), bdIds = bd.map(e => e.id);
+  const bd = weekBirthdays(), bdIds = bd.map(e => e.id), bdToday = TEAM.some(e => isBday(e, d));
   const tiles = team.map(({ e, st }) => {
     const inM = st.today.in, late = inM && inM.late;
     let label = '', cls = 's-' + st.status;
@@ -175,7 +200,7 @@ function home() {
       <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${avImg(e)}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
   }).join('');
   $('#s-home').innerHTML = `
-  <div class="top"><div class="logo"><img src="assets/logo.png" alt="Pelican"></div><span class="office">${OFFICE}</span><div class="net" id="net"><i></i><span></span></div><button class="fsb" id="fsb" type="button">⛶ Pantalla completa</button></div>
+  <div class="top">${bdToday ? garlandHTML() : ''}<div class="logo"><img src="assets/logo.png" alt="Pelican"></div><span class="office">${OFFICE}</span><div class="net" id="net"><i></i><span></span></div><button class="fsb" id="fsb" type="button">⛶ Pantalla completa</button></div>
   <div class="home">
     <div class="col">
       <div><div class="clock"><span id="ck">--:--</span><small id="sc"></small></div><div class="date" id="dt"></div></div>
@@ -194,7 +219,7 @@ function home() {
       <button class="btn blue" id="rkbtn" type="button">Mi rango y premios</button>
       <div class="panel goal"><h3>Pizza Day del equipo</h3><div class="bar"><i class="${pct >= CFG.TEAM_GOAL * 100 ? '' : 'low'}" style="width:${tp.total ? pct : 0}%"></i><u style="left:${CFG.TEAM_GOAL * 100}%"></u><em class="gm" style="left:${CFG.TEAM_GOAL * 100}%">Meta ${CFG.TEAM_GOAL * 100}% 🍕</em></div>
         <p>${tp.total ? `El equipo va <b>${pct}%</b> de puntualidad este mes (${tp.ok} de ${tp.total} llegadas a tiempo). Meta: ${CFG.TEAM_GOAL * 100}% 🍕` : 'Empieza el mes: ¡a llegar a tiempo todos!'}</p></div>
-      ${bd.length ? `<div class="panel"><h3>Cumpleaños de la semana</h3>${bd.map(e => `<div class="bday">${esc(e.name)} · ${e.bday.split('-').reverse().join('/')}</div>`).join('')}</div>` : ''}
+      ${bd.length ? `<div class="panel"><h3>Cumpleaños de la semana</h3>${bd.map(e => `<div class="bday">${esc(e.name)} · ${e.bday.split('-').reverse().join('/')}${isBday(e, d) ? ' 🎂 ¡hoy!' : ''}</div>`).join('')}</div>` : ''}
       <img class="jaycol" src="assets/jay-wave.webp" alt="">
     </div>
   </div>`;
@@ -485,7 +510,7 @@ async function send() {
 /* ---------------- Resultados ---------------- */
 function statCards(items) { return `<div class="stats">${items.map(([v, l, ic]) => `<div class="stat"><b>${ic ? `<svg><use href="#${ic}"/></svg>` : ''}${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>`; }
 function result(m, before) {
-  const e = S.flow.emp, st = stats(e), first = e.boss ? window.Daily.nick(m.date) : e.name, hm = R.hm(m.ts); let hero = '', pose = 'thumbs', extraHTML = '', eb = '', msg = '', late = false, com = null;
+  const e = S.flow.emp, st = stats(e), first = e.boss ? window.Daily.nick(m.date) : e.name, hm = R.hm(m.ts), bday = isBday(e, m.date); let hero = '', pose = 'thumbs', extraHTML = '', eb = '', msg = '', late = false, com = null;
   if (m.type === 'in') {
     late = !!m.late;
     if (m.extra && m.late) { const b = Math.ceil(m.lateMin / 60); late = true; eb = 'Jornada especial con retraso'; pose = 'think'; hero = stkWords('Llegaste a las ' + hm, ''); msg = `Multa de $${m.fine} (${b} ${b === 1 ? 'hora o fracción' : 'horas o fracción'} de retraso). Tu jornada cuenta como horas extra.`; }
@@ -493,12 +518,14 @@ function result(m, before) {
     else if (m.first) { eb = 'Primer día'; hero = stkWords('¡Bienvenido/a,', '') + ' ' + stkWords(first + '!', 'g'); msg = 'Hoy es tu primer día: tu hora de entrada queda registrada y no lleva multa. Desde mañana empieza tu racha.'; pose = 'cheer'; }
     else if (late) { const b = Math.ceil(m.lateMin / 60); eb = 'Entrada con retraso'; pose = 'think'; hero = stkWords('Llegaste a las ' + hm, '');
       msg = `Multa de $${m.fine} (${b} ${b === 1 ? 'hora o fracción' : 'horas o fracción'} de retraso). ${DEMO ? 'Queda registrado con tu foto.' : 'Te llegará un correo con el detalle.'} Mañana empiezas una racha nueva.`; }
+    else if (bday) { eb = 'Hoy es tu cumpleaños'; hero = stkWords('¡Feliz cumpleaños,', '') + ' ' + stkWords(first + '!', 'g'); pose = 'cheer';
+      msg = st.streak >= 2 ? `Llegaste a tiempo, llevas ${st.streak} días de racha y hoy el equipo celebra contigo.` : 'Llegaste a tiempo y hoy el equipo celebra contigo.'; }
     else { eb = 'Entrada registrada'; hero = stkWords('¡Llegaste a tiempo,', '') + ' ' + stkWords(first + '!', 'g');
       msg = st.streak >= 2 ? `Llevas ${st.streak} días seguidos llegando a tiempo. Buen trabajo.` : 'Entrada registrada. ¡Vamos por la racha!'; }
     const newM = st.medals.filter(k => !before.includes(k)); if (newM.length) pose = 'cheer';
     com = late && !m.extra && !m.first && !e.boss && m.fine > 0 ? comodinOf(e) : null;
     const rk = st.rank, fl = [];
-    extraHTML = quoteHTML() + (m.extra || e.boss || m.first ? '' : `${statCards([[String(st.streak), 'Racha (días)', 'i-flame'], ['+' + m.pts, 'Puntos de hoy'], [String(st.monthPts), 'Puntos del mes']])}
+    extraHTML = (bday ? bdayCard(m.date) : quoteHTML()) + (m.extra || e.boss || m.first ? '' : `${statCards([[String(st.streak), 'Racha (días)', 'i-flame'], ['+' + m.pts, 'Puntos de hoy'], [String(st.monthPts), 'Puntos del mes']])}
       <div class="panel"><div class="rk"><span>${esc(rk.name)}${rk.prize ? ` · ${esc(rk.prize)}` : ''}</span><span>${rk.next ? `${rk.next.need} pts para ${esc(rk.next.name)}` : '¡Rango máximo!'}</span></div><div class="bar2"><i id="bar"></i></div></div>
       <div class="duo"><div class="panel"><h3>Tu semana</h3><div class="week">${st.week.map(d => `<div class="day ${d.s}">${d.d}<svg>${d.s === 'ok' ? '<use href="#i-check"/>' : d.s === 'late' ? '<use href="#i-clock"/>' : d.s === 'today' ? '<use href="#i-sun"/>' : ''}</svg></div>`).join('')}</div></div>
       <div class="panel"><h3>Medallas</h3><div class="medals">${Object.keys(MEDALS).map(k => `<div class="medal ${st.medals.includes(k) ? 'got' : ''} ${newM.includes(k) ? 'new' : ''}"><svg><use href="#${MEDALS[k][1]}"/></svg>${MEDALS[k][0]}</div>`).join('')}</div></div></div>`);
@@ -515,6 +542,7 @@ function result(m, before) {
     msg = m.closer ? 'Gracias por cerrar la oficina esta semana.' : 'Gracias por dejar la oficina lista.';
     extraHTML = statCards([[R.hm(inM.ts), 'Entrada'], [mins ? mins + ' min' : '—', 'Almuerzo'], [hm, 'Salida']]) + `<div class="panel"><h3>Hoy trabajaste</h3><div class="amt" style="font-size:30px;font-weight:800;color:var(--g1)">${fmtMin(worked)}</div></div>`;
   }
+  if (bday && m.type !== 'in') extraHTML = bdayCard(m.date) + extraHTML;
   const comHTML = com ? `<div class="panel" style="border:1px solid #E8C766"><h3>${coinSVG} Tienes un comodín</h3><p style="margin:4px 0 10px;font-weight:600">Hoy llegaste tarde (multa de $${m.fine}). ¿Quieres usar tu comodín para perdonarla?</p><button class="btn blue" id="usecom" type="button">Usar mi comodín</button></div>` : '';
   const offline = !m.verified ? '<p class="empty" style="margin-top:8px">Hora no verificada por internet. Se confirma sola al volver la conexión.</p>' : '';
   $('#s-res').innerHTML = `<div class="res"><div class="main"><div class="hero ${late ? 'late' : ''}"><div class="eb">${eb} · ${hm}</div><div class="stk-wrap">${hero}</div><p>${esc(msg)}</p>${offline}</div>${comHTML}${extraHTML}
@@ -522,17 +550,17 @@ function result(m, before) {
   $('#done').onclick = home; go('s-res');
   if (com) $('#usecom').onclick = () => useComodin(m, com);
   if (S.barPct != null && $('#bar')) { const p = S.barPct; setTimeout(() => { $('#bar').style.width = p + '%'; }, 80); }
-  if (m.type === 'in' && !late && !m.extra && (stats(e).medals.length > before.length || pose === 'cheer')) confetti(); else if (m.type === 'in' && !late) confetti();
+  if (bday) confetti(true); else if (m.type === 'in' && !late && !m.extra && (stats(e).medals.length > before.length || pose === 'cheer')) confetti(); else if (m.type === 'in' && !late) confetti();
   S.barPct = null; autoHome();
 }
 let rt; function autoHome() { clearTimeout(rt); rt = setTimeout(home, 22000); }
 
-function confetti() {
+function confetti(party) {
   if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
   const c = $('#confetti'), x = c.getContext('2d'); c.width = innerWidth; c.height = innerHeight;
-  const cols = ['#8DD3A2', '#9BDAAE', '#C9EAD3', '#6FB7DA', '#F5F8F7'];
-  const ps = Array.from({ length: 120 }, () => ({ x: Math.random() * c.width, y: -20 - Math.random() * c.height * .5, w: 6 + Math.random() * 7, h: 10 + Math.random() * 8, vy: 2 + Math.random() * 4, vx: -1.5 + Math.random() * 3, r: Math.random() * 6, vr: -.2 + Math.random() * .4, c: cols[Math.floor(Math.random() * cols.length)] }));
-  let n = 0; (function t() { x.clearRect(0, 0, c.width, c.height); ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.r += p.vr; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); x.restore(); }); if (++n < 240) requestAnimationFrame(t); else x.clearRect(0, 0, c.width, c.height); })();
+  const cols = ['#8DD3A2', '#9BDAAE', '#C9EAD3', '#6FB7DA', '#F5F8F7'].concat(party ? ['#E8C766', '#E8C766', '#F2DC9B'] : []);
+  const ps = Array.from({ length: party ? 220 : 120 }, () => ({ x: Math.random() * c.width, y: -20 - Math.random() * c.height * .5, w: 6 + Math.random() * 7, h: 10 + Math.random() * 8, vy: 2 + Math.random() * 4, vx: -1.5 + Math.random() * 3, r: Math.random() * 6, vr: -.2 + Math.random() * .4, c: cols[Math.floor(Math.random() * cols.length)] }));
+  let n = 0; (function t() { x.clearRect(0, 0, c.width, c.height); ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.r += p.vr; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); x.restore(); }); if (++n < (party ? 420 : 240)) requestAnimationFrame(t); else x.clearRect(0, 0, c.width, c.height); })();
 }
 
 /* ---------------- Sincronización (se activa cuando exista el backend) ---------------- */

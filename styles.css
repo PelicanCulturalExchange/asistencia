@@ -41,7 +41,13 @@ img{display:block;max-width:100%}
 @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 /* ---------- Barra superior ---------- */
-.top{display:flex;align-items:center;gap:14px;min-height:56px}
+.top{display:flex;align-items:center;gap:14px;min-height:56px;position:relative}
+.garland{position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:min(440px,36vw);height:auto;pointer-events:none;z-index:3;overflow:visible;filter:drop-shadow(0 3px 3px rgba(0,0,0,.3))}
+.gsw{transform-box:fill-box;transform-origin:50% 0;animation:gsw 3.4s ease-in-out infinite}
+@keyframes gsw{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){.gsw{animation:none}}
+.quote.bdcard{background:color-mix(in srgb,#E8C766 62%,#F5F8F7)}
+.quote.bdcard .eb,.quote.bdcard cite{color:var(--n2)}
 .logo{background:var(--w);border-radius:16px;padding:6px 14px;display:flex;align-items:center}
 .logo img{height:40px;width:auto}
 .office{font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--g3)}
