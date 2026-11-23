@@ -123,7 +123,7 @@ const stats = e => R.statsFor(e, S.marks, CTX, today());
 const quoteOfDay = () => window.Quotes.ofDay(R.dayNum(today()), S.quotes);
 const quoteHTML = () => { const [t, a] = quoteOfDay(); return `<div class="quote"><div class="eb">Frase del día</div><p>“${esc(t)}”</p><cite>— ${esc(a)}</cite></div>`; };
 const fmtMin = m => (m >= 60 ? Math.floor(m / 60) + ' h ' : '') + (m % 60) + ' min';
-const hatSVG = '<svg class="hat" viewBox="0 0 34 38"><path d="M17 2 L4 34 H30 Z" fill="#6FB7DA" stroke="#14222A" stroke-width="2" stroke-linejoin="round"/><path d="M11 20 L23 16 M8 28 L26 23" stroke="#F5F8F7" stroke-width="3"/><circle cx="17" cy="3" r="4" fill="#8DD3A2" stroke="#14222A" stroke-width="2"/></svg>';
+const hatSVG = '<svg class="hat" viewBox="0 0 34 44"><path d="M17 5 L4 34 Q17 43 30 34 Z" fill="#6FB7DA" stroke="#14222A" stroke-width="2" stroke-linejoin="round"/><path d="M10.5 22 L23.5 18 M7.5 30 L26.5 24.5" stroke="#F5F8F7" stroke-width="3"/><circle cx="17" cy="4.5" r="3.8" fill="#8DD3A2" stroke="#14222A" stroke-width="2"/></svg>';
 
 const BDAY_PHRASES = [
   'Que este nuevo año de vida te traiga más viajes, más historias y más sueños cumplidos.',
