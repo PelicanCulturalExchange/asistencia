@@ -189,7 +189,7 @@ function home() {
   const tiles = team.map(({ e, st }) => {
     const inM = st.today.in, late = inM && inM.late;
     let label = '', cls = 's-' + st.status;
-    if (st.status === 'pending') { const xe = R.extraDay(d, CTX, e), sd = R.schedFor(e, d) || (xe ? [xe.from, xe.to] : null), pg = (S.outs[d + '|' + e.id] || []).filter(o => o.est === 'aprobado' && !o.back && sd && R.toMin(o.from) <= R.toMin(sd[0])).pop(); label = e.boss ? 'Dirección' : pg ? 'Permiso hasta ' + pg.to : R.holidayOpen(d, CTX, e) ? 'Feriado · opcional' : 'Entra ' + (sd ? sd[0] : ''); }
+    if (st.status === 'pending') { const xe = R.extraDay(d, CTX, e), sd = R.schedFor(e, d) || (xe ? [xe.from, xe.to] : null), pg = (S.outs[d + '|' + e.id] || []).filter(o => o.est === 'aprobado' && !o.back && sd && R.toMin(o.from) <= R.toMin(sd[0])).pop(); label = e.boss ? 'Dirección' : pg ? 'Permiso hasta ' + pg.to : R.holidayOpen(d, CTX, e) ? 'Feriado · opcional' : R.openDay(e, d) ? 'Fuera de base · llega libre' : 'Entra ' + (sd ? sd[0] : ''); }
     else if (st.status === 'working') { label = late ? `Tarde · ${R.hm(inM.ts)}` : `✓ ${R.hm(inM.ts)}`; if (late) cls = 's-late'; }
     else if (st.status === 'lunch') label = 'En almuerzo';
     else if (st.status === 'done') label = 'Salió ' + R.hm(st.today.out.ts);
@@ -200,7 +200,7 @@ function home() {
       <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${avImg(e)}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
   }).join('');
   $('#s-home').innerHTML = `
-  <div class="top">${bdToday ? garlandHTML() : ''}<div class="logo"><img src="assets/logo.png" alt="Pelican"></div><span class="office">${OFFICE}</span><small class="ver">v23</small><div class="net" id="net"><i></i><span></span></div><button class="fsb" id="fsb" type="button">⛶ Pantalla completa</button></div>
+  <div class="top">${bdToday ? garlandHTML() : ''}<div class="logo"><img src="assets/logo.png" alt="Pelican"></div><span class="office">${OFFICE}</span><small class="ver">v24</small><div class="net" id="net"><i></i><span></span></div><button class="fsb" id="fsb" type="button">⛶ Pantalla completa</button></div>
   <div class="home">
     <div class="col">
       <div><div class="clock"><span id="ck">--:--</span><small id="sc"></small></div><div class="date" id="dt"></div></div>
@@ -522,6 +522,8 @@ function result(m, before) {
       msg = `Multa de $${m.fine} (${b} ${b === 1 ? 'hora o fracción' : 'horas o fracción'} de retraso). ${DEMO ? 'Queda registrado con tu foto.' : 'Te llegará un correo con el detalle.'} Mañana empiezas una racha nueva.`; }
     else if (bday) { eb = 'Hoy es tu cumpleaños'; hero = stkWords('¡Feliz cumpleaños,', '') + ' ' + stkWords(first + '!', 'g'); pose = 'cheer';
       msg = st.streak >= 2 ? `Llegaste a tiempo, llevas ${st.streak} días de racha y hoy el equipo celebra contigo.` : 'Llegaste a tiempo y hoy el equipo celebra contigo.'; }
+    else if (R.openDay(e, m.date)) { eb = 'Día fuera de base'; hero = stkWords('¡Gracias por llegar,', '') + ' ' + stkWords(first + '!', 'g'); pose = 'cheer';
+      msg = 'Hoy estuviste fuera de base: sin atraso ni multa y tu racha sigue intacta.'; }
     else { eb = 'Entrada registrada'; hero = stkWords('¡Llegaste a tiempo,', '') + ' ' + stkWords(first + '!', 'g');
       msg = st.streak >= 2 ? `Llevas ${st.streak} días seguidos llegando a tiempo. Buen trabajo.` : 'Entrada registrada. ¡Vamos por la racha!'; }
     const newM = st.medals.filter(k => !before.includes(k)); if (newM.length) pose = 'cheer';

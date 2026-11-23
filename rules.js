@@ -23,8 +23,12 @@
     SPECIAL: {
       'e2|2026-11-25': ['08:00', '16:45'], 'e2|2026-11-26': ['08:00', '16:45'],
       'e2|2026-11-30': ['08:00', '16:45'], 'e2|2026-12-01': ['08:00', '16:45'], 'e2|2026-12-02': ['08:00', '16:45'],
-      'e2|2026-12-03': ['08:00', '16:45'], 'e2|2026-12-04': ['08:00', '16:45']
+      'e2|2026-12-03': ['08:00', '16:45'], 'e2|2026-12-04': ['08:00', '16:45'],
+      // 24 nov: fuera de base de 7 a 9 y salen 2 horas antes (Ale e1 y Mateo e2: 15:45; Mafer e5: 11:45)
+      'e1|2026-11-24': ['09:00', '15:45'], 'e2|2026-11-24': ['09:00', '15:45'], 'e5|2026-11-24': ['09:00', '11:45']
     },
+    // Días "abiertos" ('persona|AAAA-MM-DD'): no hay hora fija de llegada. Sin atraso ni multa, cuenta como a tiempo (la racha sigue)
+    OPEN: { 'e1|2026-11-24': 1, 'e2|2026-11-24': 1, 'e5|2026-11-24': 1 },
     TEAM_GOAL: 0.9,               // meta de puntualidad del equipo (Pizza Day)
     CHECKLIST: ['Cafetera', 'Platos secos y guardados', 'Luces apagadas', 'Escritorios ordenados', 'Computadoras apagadas']
   };
@@ -58,6 +62,7 @@
   // Día extra (sábado, domingo o feriado) que el admin activó para todo el equipo
   const extraDay = (date, ctx, emp) => { const x = (ctx.extra && ctx.extra[date]) || null; return x && (!emp || !x.who || x.who.indexOf(emp.id) >= 0) ? x : null; };
   // Feriado en que venir es opcional: sin atrasos ni multas, cada quien entra y sale cuando quiere, y las horas cuentan como extra
+  const openDay = (emp, date) => !!(emp && !emp.boss && CFG.OPEN[emp.id + '|' + date]);
   const holidayOpen = (date, ctx, emp) => !!(emp && !emp.boss && ctx.holidays && ctx.holidays[date] && schedFor(emp, date) && !extraDay(date, ctx, emp));
 
   const inMap = (emp, marks) => {
@@ -79,12 +84,12 @@
   /* ---- Puntos y racha de una entrada ---- */
   function scoreIn(emp, marks, ctx, ts) {
     const date = ymd(ts), s = schedFor(emp, date), start = s ? s[0] : CFG.START;
-    const li = lateInfo(start, minOfDay(ts));
+    const open = openDay(emp, date), li = open ? { late: false, lateMin: 0, fine: 0 } : lateInfo(start, minOfDay(ts));
     const by = inMap(emp, marks); by[date] = { late: li.late };
     const streak = li.late ? 0 : streakThrough(emp, by, ctx, date, true);
     let pts = 0, bonus = 0, early = false;
     if (!li.late) {
-      early = minOfDay(ts) < toMin(start) - CFG.EARLY_MIN;
+      early = !open && minOfDay(ts) < toMin(start) - CFG.EARLY_MIN;
       pts = CFG.PTS.ONTIME + (early ? CFG.PTS.EARLY : 0) + Math.min(streak, CFG.PTS.CAP) * CFG.PTS.STEP;
       const wk = weekStart(date), days = [];
       for (let i = 0; i < 5; i++) { const d = addDays(wk, i); if (isWorkday(emp, d, ctx)) days.push(d); }
@@ -174,7 +179,7 @@
 
   function lunchMinutes(td) { return td.lunch_out && td.lunch_in ? Math.round((td.lunch_in.ts - td.lunch_out.ts) / 60000) : null; }
 
-  const api = { CFG, pad, toMin, ymd, hm, hms, minOfDay, tsOf, addDays, dow, weekStart, dayNum, lateInfo, schedFor, isWorkday, extraDay, holidayOpen,
+  const api = { CFG, pad, toMin, ymd, hm, hms, minOfDay, tsOf, addDays, dow, weekStart, dayNum, lateInfo, schedFor, isWorkday, extraDay, holidayOpen, openDay,
     scoreIn, streakThrough, rankFor, statsFor, teamPunctuality, closerOfWeek, lunchMinutes, inMap };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Rules = api;
 })(typeof window !== 'undefined' ? window : globalThis);
