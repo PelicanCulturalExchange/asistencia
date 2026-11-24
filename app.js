@@ -200,7 +200,7 @@ function home() {
       <div class="av">${bdIds.includes(e.id) ? hatSVG : ''}${avImg(e)}</div><div class="nm">${esc(e.name)}</div><div class="tp">${esc(e.type)}</div><div class="stt">${esc(label)}</div></button>`;
   }).join('');
   $('#s-home').innerHTML = `
-  <div class="top">${bdToday ? garlandHTML() : ''}<div class="logo"><img src="assets/logo.png" alt="Pelican"></div><span class="office">${OFFICE}</span><small class="ver">v24</small><div class="net" id="net"><i></i><span></span></div><button class="fsb" id="fsb" type="button">⛶ Pantalla completa</button></div>
+  <div class="top">${bdToday ? garlandHTML() : ''}<div class="logo"><img src="assets/logo.png" alt="Pelican"></div><span class="office">${OFFICE}</span><small class="ver">v25</small><div class="net" id="net"><i></i><span></span></div><button class="fsb" id="fsb" type="button">⛶ Pantalla completa</button></div>
   <div class="home">
     <div class="col">
       <div><div class="clock"><span id="ck">--:--</span><small id="sc"></small></div><div class="date" id="dt"></div></div>

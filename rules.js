@@ -24,11 +24,11 @@
       'e2|2026-11-25': ['08:00', '16:45'], 'e2|2026-11-26': ['08:00', '16:45'],
       'e2|2026-11-30': ['08:00', '16:45'], 'e2|2026-12-01': ['08:00', '16:45'], 'e2|2026-12-02': ['08:00', '16:45'],
       'e2|2026-12-03': ['08:00', '16:45'], 'e2|2026-12-04': ['08:00', '16:45'],
-      // 24 nov: fuera de base de 7 a 9 y salen 2 horas antes (Ale e1 y Mateo e2: 15:45; Mafer e5: 11:45)
-      'e1|2026-11-24': ['09:00', '15:45'], 'e2|2026-11-24': ['09:00', '15:45'], 'e5|2026-11-24': ['09:00', '11:45']
+      // 24 nov: fuera de base de 7 a 9 y salen 2 horas antes (Ale e1, Mateo e2 y Meli e4: 15:45; Mafer e5: 11:45)
+      'e1|2026-11-24': ['09:00', '15:45'], 'e2|2026-11-24': ['09:00', '15:45'], 'e5|2026-11-24': ['09:00', '11:45'], 'e4|2026-11-24': ['09:00', '15:45']
     },
     // Días "abiertos" ('persona|AAAA-MM-DD'): no hay hora fija de llegada. Sin atraso ni multa, cuenta como a tiempo (la racha sigue)
-    OPEN: { 'e1|2026-11-24': 1, 'e2|2026-11-24': 1, 'e5|2026-11-24': 1 },
+    OPEN: { 'e1|2026-11-24': 1, 'e2|2026-11-24': 1, 'e5|2026-11-24': 1, 'e4|2026-11-24': 1 },
     TEAM_GOAL: 0.9,               // meta de puntualidad del equipo (Pizza Day)
     CHECKLIST: ['Cafetera', 'Platos secos y guardados', 'Luces apagadas', 'Escritorios ordenados', 'Computadoras apagadas']
   };
