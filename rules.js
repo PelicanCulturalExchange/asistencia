@@ -21,7 +21,7 @@
     ],
     // Horarios especiales aprobados por fecha ('persona|AAAA-MM-DD': [entrada, salida]); mandan sobre el horario semanal
     SPECIAL: {
-      'e2|2026-11-25': ['08:15', '17:00'], 'e2|2026-11-26': ['08:15', '17:00'],
+      'e2|2026-11-25': ['08:15', '17:00'],
       'e2|2026-11-30': ['08:15', '17:00'], 'e2|2026-12-01': ['08:15', '17:00'], 'e2|2026-12-02': ['08:15', '17:00'],
       'e2|2026-12-03': ['08:15', '17:00'], 'e2|2026-12-04': ['08:15', '17:00'],
       // 24 nov: fuera de base de 7 a 9 y salen 2 horas antes (Ale e1, Mateo e2 y Meli e4: 15:45; Mafer e5: 11:45)
