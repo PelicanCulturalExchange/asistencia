@@ -28,7 +28,7 @@
       'e1|2026-11-24': ['09:00', '15:45'], 'e2|2026-11-24': ['09:00', '15:45'], 'e5|2026-11-24': ['09:00', '11:45'], 'e4|2026-11-24': ['09:00', '15:45']
     },
     // Días "abiertos" ('persona|AAAA-MM-DD'): no hay hora fija de llegada. Sin atraso ni multa, cuenta como a tiempo (la racha sigue)
-    OPEN: { 'e1|2026-11-24': 1, 'e2|2026-11-24': 1, 'e5|2026-11-24': 1, 'e4|2026-11-24': 1 },
+    OPEN: { 'e1|2026-11-24': 1, 'e2|2026-11-24': 1, 'e5|2026-11-24': 1, 'e4|2026-11-24': 1, 'e4|2026-11-27': 1, 'e7|2026-11-27': 1 },
     TEAM_GOAL: 0.9,               // meta de puntualidad del equipo (Pizza Day)
     CHECKLIST: ['Cafetera', 'Platos secos y guardados', 'Luces apagadas', 'Escritorios ordenados', 'Computadoras apagadas']
   };
